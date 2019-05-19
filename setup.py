@@ -12,5 +12,5 @@ def get_export_symbols(self, ext):
 
 build_ext.build_ext.get_export_symbols = get_export_symbols
 
-setup(name='voicePkg', version='1.0',  \
-      ext_modules=[Extension('voice', ['test.cpp'])])
+setup(name='fastfilepackage', version='1.0',  \
+      ext_modules=[Extension('fastfilepackage', ['fastfile.cpp', 'fastfilewrapper.cpp'])])

@@ -1,8 +1,10 @@
-import voice
+import fastfilepackage
+iterable = fastfilepackage.FastFile( './sample.txt' )
+results = []
+for item in iterable:
+    print( 'a) %s' % iterable() )
+    print( 'b) %s' % iterable() )
+    print( 'c) %s' % iterable() )
+    iterable.resetlines()
+    print( 'd) %s' % iterable() )
 
-v=voice.Voice(512)
-result=v.filter(5)
-print('result='+str(result))
-print('v', dir(v))
-result=v.doubleIt(5)
-print('result='+str(result))
