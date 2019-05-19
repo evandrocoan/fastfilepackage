@@ -35,7 +35,7 @@ static int PyFastFile_init(PyFastFile *self, PyObject *args, PyObject *kwds) {
 static void PyFastFile_dealloc(PyFastFile * self)
 {
     delete self->cppobjectpointer;
-    Py_TYPE(self)->tp_free(self);
+    Py_TYPE(self)->tp_free( (PyObject *) self );
 }
 
 static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
@@ -44,7 +44,7 @@ static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
 
 static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 {
-    Py_INCREF(self);
+    Py_INCREF( self );
     return (PyObject *) self;
 }
 
@@ -60,7 +60,7 @@ static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
         return NULL;
     }
 
-    Py_INCREF(Py_None);
+    Py_INCREF( Py_None );
     return Py_None;
 }
 
@@ -74,27 +74,29 @@ static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
     }
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
     retval = (self->cppobjectpointer)->getlines( linestoget, PyUnicode_AsUTF8 );
-    return PyUnicode_DecodeUTF8( (char *) retval.c_str(), retval.size(), "replace" );
+    PyObject* pyobject = PyUnicode_DecodeUTF8( (char *) retval.c_str(), retval.size(), "replace" );
+    Py_XINCREF( pyobject );
+    return pyobject;
 }
 
 static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
-    Py_INCREF(self);
+    Py_INCREF( self );
     return (PyObject *) self;
 }
 
 static PyMethodDef PyFastFile_methods[] =
 {
-    { "getlines", (PyCFunction)PyFastFile_getlines, METH_VARARGS, "Return a string with `nth` cached lines" },
-    { "resetlines", (PyCFunction)PyFastFile_resetlines, METH_NOARGS, "Reset the current line counter" },
-    {NULL, NULL, 0, NULL}  /* Sentinel */
+    { "getlines", (PyCFunction) PyFastFile_getlines, METH_VARARGS, "Return a string with `nth` cached lines" },
+    { "resetlines", (PyCFunction) PyFastFile_resetlines, METH_NOARGS, "Reset the current line counter" },
+    { NULL, NULL, 0, NULL }  /* Sentinel */
 };
 
 static PyTypeObject PyFastFileType =
 {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    "FastFile" /* tp_name */
+    PyVarObject_HEAD_INIT( NULL, 0 )
+    "fastfilepackage.FastFile" /* tp_name */
 };
 
 // create the module
@@ -108,28 +110,27 @@ PyMODINIT_FUNC PyInit_fastfilepackage(void)
     PyFastFileType.tp_iternext = (iternextfunc) PyFastFile_iternext;
 
     PyFastFileType.tp_new = PyType_GenericNew;
-    PyFastFileType.tp_basicsize=sizeof(PyFastFile);
-    PyFastFileType.tp_dealloc=(destructor) PyFastFile_dealloc;
-    PyFastFileType.tp_flags=Py_TPFLAGS_DEFAULT;
-    PyFastFileType.tp_doc="FastFile objects";
-    PyFastFileType.tp_methods=PyFastFile_methods;
+    PyFastFileType.tp_basicsize = sizeof(PyFastFile);
+    PyFastFileType.tp_dealloc = (destructor) PyFastFile_dealloc;
+    PyFastFileType.tp_flags = Py_TPFLAGS_DEFAULT;
+    PyFastFileType.tp_doc = "FastFile objects";
+    PyFastFileType.tp_methods = PyFastFile_methods;
 
     //~ PyFastFileType.tp_members=Noddy_members;
     PyFastFileType.tp_init=(initproc)PyFastFile_init;
 
-    if (PyType_Ready(&PyFastFileType) < 0) {
+    if( PyType_Ready( &PyFastFileType) < 0 ) {
         return NULL;
     }
 
     thismodule = PyModule_Create(&fastfilepackagemodule);
 
-    if (thismodule == NULL) {
+    if( thismodule == NULL ) {
         return NULL;
     }
 
-    Py_INCREF(&PyFastFileType);
-
-    // Add FastFile object to thismodule
-    PyModule_AddObject(thismodule, "FastFile", (PyObject *)&PyFastFileType);
+    // Add FastFile class to thismodule allowing the use to create objects
+    Py_INCREF( &PyFastFileType );
+    PyModule_AddObject( thismodule, "FastFile", (PyObject *) &PyFastFileType );
     return thismodule;
 }
