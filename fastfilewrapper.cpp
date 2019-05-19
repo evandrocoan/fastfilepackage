@@ -83,8 +83,8 @@ static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
 static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
-    Py_INCREF( self );
-    return (PyObject *) self;
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 static PyMethodDef PyFastFile_methods[] =
