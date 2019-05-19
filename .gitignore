@@ -1,0 +1,12 @@
+*.sublime-workspace
+*.pyc
+*.exe
+/.tox
+
+**.egg-info**
+*.pyo
+
+.ropeproject
+.cache
+/dist
+/build
