@@ -39,7 +39,7 @@ static void PyFastFile_dealloc(PyFastFile * self)
 }
 
 static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
-    return (self->cppobjectpointer)->call();
+    return (self->cppobjectpointer)->call( PyUnicode_DecodeUTF8 );
 }
 
 static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
@@ -51,7 +51,7 @@ static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
-    bool next = (self->cppobjectpointer)->next();
+    bool next = (self->cppobjectpointer)->next( PyUnicode_DecodeUTF8 );
 
     // printf( "PyFastFile_iternext: %d\n", next );
     if( !( next ) )
@@ -73,8 +73,8 @@ static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
         return NULL;
     }
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-    retval = (self->cppobjectpointer)->getlines( linestoget );
-    return PyUnicode_DecodeUTF8( retval.c_str(), retval.size(), "replace" );
+    retval = (self->cppobjectpointer)->getlines( linestoget, PyUnicode_AsUTF8 );
+    return PyUnicode_DecodeUTF8( (char *) retval.c_str(), retval.size(), "replace" );
 }
 
 static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)

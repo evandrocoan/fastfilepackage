@@ -35,14 +35,15 @@ struct FastFile
         currentline = -1;
     }
 
-    std::string getlines(unsigned int linestoget) {
+    template<typename Encoding>
+    std::string getlines(unsigned int linestoget, Encoding encoding) {
         std::stringstream stream;
         unsigned int current = 1;
         const char* cppline;
 
         for( CacheType line : linecache ) {
             ++current;
-            cppline = PyUnicode_AsUTF8( line );
+            cppline = encoding( line );
             stream << std::string{cppline};
 
             if( linestoget < current ) {
@@ -52,35 +53,39 @@ struct FastFile
         return stream.str();
     }
 
-    bool getline() {
+    template<typename Decoding>
+    bool getline(Decoding decoding) {
         std::string newline;
 
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
 
             // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
-            CacheType pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
+            CacheType pythonobject = decoding( (char *) newline.c_str(), newline.size(), "replace" );
 
             // fprintf(stderr, "pythonobject '%d'\n", pythonobject); fflush(stderr);
             linecache.push_back( pythonobject );
+            return true;
         }
         return false;
     }
 
-    bool next() {
+    template<typename Decoding>
+    bool next(Decoding decoding) {
         resetlines();
 
         if( linecache.size() ) {
             linecache.pop_front();
             return true;
         }
-        bool boolline = getline();
+        bool boolline = getline( decoding );
 
         // fprintf( stderr, "boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
         return boolline;
     }
 
-    CacheType call()
+    template<typename Decoding>
+    CacheType call(Decoding decoding)
     {
         currentline += 1;
         // fprintf( stderr, "linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
@@ -91,10 +96,10 @@ struct FastFile
         }
         else
         {
-            if( !getline() )
+            if( !getline( decoding ) )
             {
                 // fprintf( stderr, "Raising StopIteration\n" );
-                return PyUnicode_DecodeUTF8( "", 0, "replace" );
+                return decoding( (char *) "", 0, "replace" );
             }
         }
         // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
