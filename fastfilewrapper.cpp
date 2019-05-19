@@ -34,8 +34,13 @@ static int PyFastFile_init(PyFastFile *self, PyObject *args, PyObject *kwds) {
 // destruct the object
 static void PyFastFile_dealloc(PyFastFile * self)
 {
+    for( PyObject* pyobject : self->cppobjectpointer->linecache ) {
+        Py_XDECREF( pyobject );
+    }
+
+    // https://stackoverflow.com/questions/56212363/should-i-call-delete-or-py-xdecref-for-a-c-class-on-custom-dealloc-for-python
     delete self->cppobjectpointer;
-    Py_TYPE(self)->tp_free( (PyObject *) self );
+    Py_TYPE( self)->tp_free( (PyObject *) self );
 }
 
 static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
