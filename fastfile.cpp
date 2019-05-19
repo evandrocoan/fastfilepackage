@@ -19,6 +19,10 @@ struct FastFile
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
         fileifstream.open( filepath );
+
+        if( fileifstream.fail() ) {
+            std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
+        }
     }
 
     ~FastFile() {
