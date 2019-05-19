@@ -38,10 +38,11 @@ struct FastFile
     std::string getlines(unsigned int linestoget) {
         std::stringstream stream;
         unsigned int current = 1;
+        const char* cppline;
 
         for( CacheType line : linecache ) {
             ++current;
-            const char* cppline = PyUnicode_AsUTF8( line );
+            cppline = PyUnicode_AsUTF8( line );
             stream << std::string{cppline};
 
             if( linestoget < current ) {
