@@ -61,7 +61,7 @@ struct FastFile
             linecount += 1;
 
             // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
-            CacheType pythonobject = decoding( (char *) newline.c_str(), newline.size(), "replace" );
+            CacheType pythonobject = decoding( newline.c_str(), newline.size(), "replace" );
 
             // fprintf(stderr, "pythonobject '%d'\n", pythonobject); fflush(stderr);
             linecache.push_back( pythonobject );
@@ -99,7 +99,7 @@ struct FastFile
             if( !getline( decoding ) )
             {
                 // fprintf( stderr, "Raising StopIteration\n" );
-                return decoding( (char *) "", 0, "replace" );
+                return decoding( "", 0, "replace" );
             }
         }
         // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
