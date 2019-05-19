@@ -77,9 +77,7 @@ static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
     }
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
     retval = (self->cppobjectpointer)->getlines( linestoget, PyUnicode_AsUTF8 );
-    PyObject* pyobject = PyUnicode_DecodeUTF8( (char *) retval.c_str(), retval.size(), "replace" );
-    Py_XINCREF( pyobject );
-    return pyobject;
+    return PyUnicode_DecodeUTF8( (char *) retval.c_str(), retval.size(), "replace" );
 }
 
 static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
