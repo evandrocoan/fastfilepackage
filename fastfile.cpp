@@ -5,34 +5,25 @@
 #include <fstream>
 #include <deque>
 
-#include <stdio.h>
-#include <stdlib.h>
-
 struct FastFile
 {
-    char newline[102400];
     const char* filepath;
     long long int linecount;
     long long int currentline;
 
     std::deque<std::string> linecache;
-    FILE* filepointer;
+    std::ifstream fileifstream;
 
     FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
     {
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
-        filepointer = fopen(filepath, "r");
-
-        if( filepointer == NULL ) {
-            perror("Error opening file");
-            exit(EXIT_FAILURE);
-        }
+        fileifstream.open( filepath );
     }
 
     ~FastFile() {
-        // fprintf( stderr, "~FastFile Destructor\n" );
-        fclose( filepointer );
+        // printf( "~FastFile Destructor\n" );
+        fileifstream.close();
     }
 
     void resetlines() {
@@ -51,7 +42,7 @@ struct FastFile
                 break;
             }
             else {
-                stream << '\n';
+                // stream << '\n';
             }
         }
 
@@ -59,51 +50,16 @@ struct FastFile
     }
 
     bool getline() {
-        unsigned int index = 0;
-        char readchar;
-        bool hasnewlines = true;
-        while( true )
-        {
-            if( index > sizeof( newline ) - 2 ) {
-                break;
-            }
-            readchar = fgetc( filepointer );
+        std::string newline;
 
-            // if( readchar == '\r' ) fprintf( stderr, "Reading char '\\r'\n" ); else if( readchar == '\n' ) fprintf( stderr, "Reading char '\\n'\n" ); else fprintf( stderr, "Reading char '%c'\n", readchar );
+        if( std::getline( fileifstream, newline ) ) {
+            linecount += 1;
 
-            if( readchar == '\n' )
-            {
-                if( index > 1 && newline[index-1] == '\r' ) {
-                    // fprintf( stderr, "Cleaning \\r\n" );
-                    --index;
-                }
-                break;
-            }
-
-            newline[index] = readchar;
-
-            if( readchar == EOF ) {
-                // fprintf( stderr, "END OF FILE index %d currentline %d hasnewlines %d '%d'\n", index, currentline, hasnewlines, readchar );
-
-                hasnewlines = !!index;
-                break;
-            }
-            else {
-                ++index;
-            }
+            // newline.pop_back();
+            linecache.push_back( newline );
+            return true;
         }
-        newline[index] = '\0';
-        // if( ferror( filepointer ) ) { fprintf( stderr, "Error: Reading file index %d hasnewlines %d '%s'\n", index, hasnewlines, filepath ); }
-        // if( feof( filepointer ) ) { fprintf( stderr, "End of the file index %d hasnewlines %d '%s'\n", index, hasnewlines, filepath ); }
-
-        if( hasnewlines ) {
-            std::string stdline{newline};
-            linecache.push_back( stdline );
-            // fprintf( stderr, "NEWLINE '%s'++\n++linecache.size %d currentline %d linecount %d\n", stdline.c_str(), linecache.size(), currentline, linecount );
-        }
-
-        linecount += 1;
-        return hasnewlines;
+        return false;
     }
 
     bool next() {
