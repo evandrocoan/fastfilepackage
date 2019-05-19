@@ -30,11 +30,28 @@ struct FastFile
         currentline = -1;
     }
 
+    std::string getlines(unsigned int linestoget) {
+        std::stringstream stream;
+        unsigned int current = 1;
+
+        for( std::string line : linecache ) {
+            ++current;
+            stream << line;
+            // stream << "\n";
+
+            if( linestoget > current ) {
+                break;
+            }
+        }
+        return stream.str();
+    }
+
     bool getline() {
         std::string newline;
 
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
+            // newline.pop_back();
             linecache.push_back( newline );
             return true;
         }

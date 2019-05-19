@@ -23,7 +23,7 @@ static int PyFastFile_init(PyFastFile *self, PyObject *args, PyObject *kwds)
     char* filepath;
 
     if( !PyArg_ParseTuple(args, "s", &filepath) ) {
-        return -1;
+        return NULL;
     }
 
     self->cppobjectpointer = new FastFile( filepath );
@@ -42,8 +42,8 @@ static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args)
     std::string retval;
     retval = (self->cppobjectpointer)->call();
 
-    // printf("%s\n", retval.c_str());
-    return Py_BuildValue( "s", retval.c_str() );
+    // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
+    return PyUnicode_DecodeUTF8( (char*) retval.c_str(), retval.size(), "replace" );
 }
 
 static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
@@ -66,6 +66,20 @@ static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
     return Py_None;
 }
 
+static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
+{
+    std::string retval;
+    unsigned int linestoget;
+
+    if( !PyArg_ParseTuple( args, "i", &linestoget ) ) {
+        return NULL;
+    }
+    retval = (self->cppobjectpointer)->getlines( linestoget );
+
+    // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
+    return PyUnicode_DecodeUTF8( (char*) retval.c_str(), retval.size(), "replace" );
+}
+
 static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
@@ -75,7 +89,8 @@ static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
 
 static PyMethodDef PyFastFile_methods[] =
 {
-    { "resetlines", (PyCFunction)PyFastFile_resetlines, METH_VARARGS, "Reset the current line counter" },
+    { "getlines", (PyCFunction)PyFastFile_getlines, METH_VARARGS, "Return a string with `nth` cached lines" },
+    { "resetlines", (PyCFunction)PyFastFile_resetlines, METH_NOARGS, "Reset the current line counter" },
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
