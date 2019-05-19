@@ -1,4 +1,3 @@
-#include <Python.h>
 #include <cstdio>
 #include <string>
 #include <iostream>
@@ -6,13 +5,14 @@
 #include <fstream>
 #include <deque>
 
+template <typename CacheType>
 struct FastFile
 {
     const char* filepath;
     long long int linecount;
     long long int currentline;
 
-    std::deque<PyObject*> linecache;
+    std::deque<CacheType> linecache;
     std::ifstream fileifstream;
 
     FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
@@ -39,7 +39,7 @@ struct FastFile
         std::stringstream stream;
         unsigned int current = 1;
 
-        for( PyObject* line : linecache ) {
+        for( CacheType line : linecache ) {
             ++current;
             const char* cppline = PyUnicode_AsUTF8( line );
             stream << std::string{cppline};
@@ -58,7 +58,7 @@ struct FastFile
             linecount += 1;
 
             // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
-            PyObject* pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
+            CacheType pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
 
             // fprintf(stderr, "pythonobject '%d'\n", pythonobject); fflush(stderr);
             linecache.push_back( pythonobject );
@@ -79,7 +79,7 @@ struct FastFile
         return boolline;
     }
 
-    PyObject* call()
+    CacheType call()
     {
         currentline += 1;
         // fprintf( stderr, "linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );

@@ -4,7 +4,7 @@
 typedef struct
 {
     PyObject_HEAD
-    FastFile* cppobjectpointer;
+    FastFile<PyObject*>* cppobjectpointer;
 }
 PyFastFile;
 
@@ -27,7 +27,7 @@ static int PyFastFile_init(PyFastFile *self, PyObject *args, PyObject *kwds) {
         return NULL;
     }
 
-    self->cppobjectpointer = new FastFile( filepath );
+    self->cppobjectpointer = new FastFile<PyObject*>( filepath );
     return 0;
 }
 
