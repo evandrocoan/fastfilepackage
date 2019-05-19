@@ -22,7 +22,7 @@ struct FastFile
     }
 
     ~FastFile() {
-        // printf( "~FastFile Destructor\n" );
+        // fprintf( stderr, "~FastFile Destructor linecount %d currentline %d\n", linecount, currentline );
         fileifstream.close();
     }
 
@@ -52,11 +52,15 @@ struct FastFile
     bool getline() {
         std::string newline;
 
+        // when the EOF is reached, std::getline puts a empty string before start failing the if
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
+            // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
 
-            // newline.pop_back();
-            linecache.push_back( newline );
+            if( newline.size() ) {
+                // newline.pop_back();
+                linecache.push_back( newline );
+            }
             return true;
         }
         return false;
@@ -71,14 +75,14 @@ struct FastFile
         }
 
         bool boolline = getline();
-        // fprintf( stderr, "boolline: %d\n", boolline );
+        // fprintf( stderr, "boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
         return boolline;
     }
 
     std::string call()
     {
         currentline += 1;
-        // fprintf( stderr, "linecache.size: %zd, currentline: %zd\n", linecache.size(), currentline );
+        // fprintf( stderr, "linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
 
         if( currentline < linecache.size() )
         {
@@ -92,12 +96,12 @@ struct FastFile
                 return "";
             }
         }
-        // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d currentline %d linecount %d\n", contents.str().c_str(), linecache.size(), currentline, linecount );
+        // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d\n", contents.str().c_str(), linecache.size(), linecount, currentline );
         return linecache[currentline];
     }
 };
 
-// g++ -o main.exe fastfile.cpp -g -ggdb && ./main.exe
+// // g++ -o main.exe fastfile.cpp -g -ggdb && ./main.exe
 // int main(int argc, char const *argv[])
 // {
 //     FastFile fastfile( "./sample.txt" );
