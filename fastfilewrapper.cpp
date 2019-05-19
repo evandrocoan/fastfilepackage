@@ -8,6 +8,8 @@ typedef struct
 }
 PyFastFile;
 
+// https://gist.github.com/physacco/2e1b52415f3a964ad2a542a99bebed8f
+// https://stackoverflow.com/questions/48786693/how-to-wrap-a-c-object-using-pure-python-extension-api-python3
 static PyModuleDef fastfilepackagemodule =
 {
     PyModuleDef_HEAD_INIT,
@@ -55,8 +57,10 @@ static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
+    bool next = (self->cppobjectpointer)->next();
 
-    if( !( self->cppobjectpointer)->next() )
+    // printf( "NEXT: %d\n", next );
+    if( ! ( next ) )
     {
         PyErr_SetNone( PyExc_StopIteration );
         return NULL;
