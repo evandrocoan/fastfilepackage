@@ -1,3 +1,4 @@
+#include <Python.h>
 #include <cstdio>
 #include <string>
 #include <iostream>
@@ -11,7 +12,7 @@ struct FastFile
     long long int linecount;
     long long int currentline;
 
-    std::deque<std::string> linecache;
+    std::deque<PyObject*> linecache;
     std::ifstream fileifstream;
 
     FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
@@ -38,34 +39,29 @@ struct FastFile
         std::stringstream stream;
         unsigned int current = 1;
 
-        for( std::string line : linecache ) {
+        for( PyObject* line : linecache ) {
             ++current;
-            stream << line;
+            const char* cppline = PyUnicode_AsUTF8( line );
+            stream << std::string{cppline};
 
             if( linestoget < current ) {
                 break;
             }
-            else {
-                // stream << '\n';
-            }
         }
-
         return stream.str();
     }
 
     bool getline() {
         std::string newline;
 
-        // when the EOF is reached, std::getline puts a empty string before start failing the if
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
-            // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
 
-            if( newline.size() ) {
-                // newline.pop_back();
-                linecache.push_back( newline );
-            }
-            return true;
+            // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
+
+            // fprintf(stderr, "pythonobject '%d'\n", pythonobject); fflush(stderr);
+            linecache.push_back( pythonobject );
         }
         return false;
     }
@@ -77,13 +73,13 @@ struct FastFile
             linecache.pop_front();
             return true;
         }
-
         bool boolline = getline();
+
         // fprintf( stderr, "boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
         return boolline;
     }
 
-    std::string call()
+    PyObject* call()
     {
         currentline += 1;
         // fprintf( stderr, "linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
@@ -97,10 +93,10 @@ struct FastFile
             if( !getline() )
             {
                 // fprintf( stderr, "Raising StopIteration\n" );
-                return "";
+                return PyUnicode_DecodeUTF8( "", 0, "replace" );
             }
         }
-        // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d\n", contents.str().c_str(), linecache.size(), linecount, currentline );
+        // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
         return linecache[currentline];
     }
 };

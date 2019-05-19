@@ -20,8 +20,7 @@ static PyModuleDef fastfilepackagemodule =
 };
 
 // initialize PyFastFile Object
-static int PyFastFile_init(PyFastFile *self, PyObject *args, PyObject *kwds)
-{
+static int PyFastFile_init(PyFastFile *self, PyObject *args, PyObject *kwds) {
     char* filepath;
 
     if( !PyArg_ParseTuple(args, "s", &filepath) ) {
@@ -39,13 +38,8 @@ static void PyFastFile_dealloc(PyFastFile * self)
     Py_TYPE(self)->tp_free(self);
 }
 
-static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args)
-{
-    std::string retval;
-    retval = (self->cppobjectpointer)->call();
-
-    // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-    return PyUnicode_DecodeUTF8( (char*) retval.c_str(), retval.size(), "replace" );
+static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
+    return (self->cppobjectpointer)->call();
 }
 
 static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
@@ -59,8 +53,8 @@ static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
     (self->cppobjectpointer)->resetlines();
     bool next = (self->cppobjectpointer)->next();
 
-    // printf( "NEXT: %d\n", next );
-    if( ! ( next ) )
+    // printf( "PyFastFile_iternext: %d\n", next );
+    if( !( next ) )
     {
         PyErr_SetNone( PyExc_StopIteration );
         return NULL;
@@ -78,10 +72,9 @@ static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
     if( !PyArg_ParseTuple( args, "i", &linestoget ) ) {
         return NULL;
     }
-    retval = (self->cppobjectpointer)->getlines( linestoget );
-
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-    return PyUnicode_DecodeUTF8( (char*) retval.c_str(), retval.size(), "replace" );
+    retval = (self->cppobjectpointer)->getlines( linestoget );
+    return PyUnicode_DecodeUTF8( retval.c_str(), retval.size(), "replace" );
 }
 
 static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
