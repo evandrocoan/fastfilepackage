@@ -39,7 +39,10 @@ static void PyFastFile_dealloc(PyFastFile * self)
 }
 
 static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
-    return (self->cppobjectpointer)->call( PyUnicode_DecodeUTF8 );
+    PyObject *retvalue = (self->cppobjectpointer)->call( PyUnicode_DecodeUTF8 );
+
+    Py_XINCREF( retvalue );
+    return retvalue;
 }
 
 static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
