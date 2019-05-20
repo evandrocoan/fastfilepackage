@@ -3,6 +3,8 @@
 *.exe
 /.tox
 
+/MANIFEST
+
 **.egg-info**
 *.pyo
 

@@ -1,0 +1,49 @@
+
+# mutliple os matrix
+# https://docs.travis-ci.com/user/multi-os/#Python-example-(unsupported-languages)
+matrix:
+    include:
+        - os: linux
+          python: 3.5
+          language: python
+          env: TOXENV=py35
+
+        - os: linux
+          python: 3.6
+          language: python
+          env: TOXENV=py36
+
+        - os: linux
+          python: 3.7
+          language: python
+          env: TOXENV=py37
+          dist: xenial
+
+
+before_install:
+    - pwd
+
+    - if [ -z "$TOXENV" ] && [ "$TRAVIS_OS_NAME" == "osx" ]; then
+            brew update > /dev/null;
+            python --version;
+            python3 --version;
+            brew upgrade python;
+            python --version;
+            python3 --version;
+      fi
+
+install:
+    - if ! [ -z "$TOXENV" ] && [ "$TRAVIS_OS_NAME" == "linux" ]; then
+            pip install --disable-pip-version-check fastfilepackage --upgrade;
+            pip list;
+      fi
+
+script:
+    - echo AFTER TESTING
+
+after_success:
+    - echo AFTER SUCCESS
+
+notifications:
+    email: false
+
