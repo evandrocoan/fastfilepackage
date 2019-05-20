@@ -28,7 +28,14 @@ struct FastFile
 
     ~FastFile() {
         // fprintf( stderr, "~FastFile Destructor linecount %d currentline %d\n", linecount, currentline );
-        fileifstream.close();
+        this->close();
+    }
+
+    void close() {
+        // fprintf( stderr, "FastFile closing the file linecount %d currentline %d\n", linecount, currentline );
+        if( fileifstream.is_open() ) {
+            fileifstream.close();
+        }
     }
 
     void resetlines() {

@@ -93,8 +93,16 @@ static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
     return Py_None;
 }
 
+static PyObject * PyFastFile_close(PyFastFile* self, PyObject* args)
+{
+    (self->cppobjectpointer)->close();
+    Py_INCREF( Py_None );
+    return Py_None;
+}
+
 static PyMethodDef PyFastFile_methods[] =
 {
+    { "close", (PyCFunction) PyFastFile_close, METH_VARARGS, "If the file object was open, close it" },
     { "getlines", (PyCFunction) PyFastFile_getlines, METH_VARARGS, "Return a string with `nth` cached lines" },
     { "resetlines", (PyCFunction) PyFastFile_resetlines, METH_NOARGS, "Reset the current line counter" },
     { "line", (PyCFunction) PyFastFile_tp_call, METH_NOARGS, "Return the next line or an empty string on the file end" },
