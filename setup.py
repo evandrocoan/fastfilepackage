@@ -44,7 +44,7 @@ try:
 
 except Exception as error:
     readme_contents = ""
-    sys.stderr.write( "Warning: Could not open README.md due %s" % error )
+    sys.stderr.write( "Warning: Could not open README.md due %s\n" % error )
 
 
 setup(
