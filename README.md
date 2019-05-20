@@ -29,6 +29,7 @@ and compile the program into mode debug.
 These instructions works for both Linux and
 Cygwin.
 ```
+sudo apt-get install python3-dbg
 apt-cyg install libcrypt-devel python36-devel python36-debuginfo python3-debuginfo python3-cython-debuginfo
 CFLAGS="-O0 -g -ggdb -fstack-protector-all" CXXFLAGS="-O0 -g -ggdb -fstack-protector-all" /bin/pip3 install .
 
