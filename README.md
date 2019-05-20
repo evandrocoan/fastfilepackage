@@ -3,7 +3,9 @@
 
 An module written with pure Python C Extensions to open a file and
 cache the more recent accessed lines.
-See the file [fastfiletest.cpp](fastfiletest.cpp) for an usage example.
+See these files for an usage example:
+1. [fastfiletest.cpp](fastfiletest.py)
+1. [fastfiletest.cpp](fastfiletest.cpp)
 
 
 ## Installation
@@ -12,6 +14,7 @@ Requires Python 3,
 pip3, distutils and
 C++ 11 compiler installed.
 ```
+sudo apt-get install build-essential python3-dev
 git clone https://github.com/evandrocoan/fastfilewrapper
 cd fastfilewrapper
 pip3 install .
