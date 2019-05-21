@@ -4,7 +4,7 @@
 An module written with pure Python C Extensions to open a file and
 cache the more recent accessed lines.
 See these files for an usage example:
-1. [fastfiletest.cpp](fastfiletest.py)
+1. [fastfiletest.py](fastfiletest.py)
 1. [fastfiletest.cpp](fastfiletest.cpp)
 
 
@@ -12,12 +12,21 @@ See these files for an usage example:
 
 Requires Python 3,
 pip3, distutils and
-C++ 11 compiler installed.
+C++ 11 compiler installed:
 ```
 sudo apt-get install build-essential g++ python3-dev
-git clone https://github.com/evandrocoan/fastfilewrapper
-cd fastfilewrapper
+```
+
+Then, you can clone this repository with:
+```
+git clone https://github.com/evandrocoan/fastfilepackage
+cd fastfilepackage
 pip3 install .
+```
+
+Or install it with:
+```
+pip3 install fastfilepackage
 ```
 
 
@@ -52,7 +61,7 @@ export CYGWIN="$CYGWIN error_start=dumper -d %1 %2"
 1. https://stackoverflow.com/questions/46265835/how-to-debug-a-python-module-run-with-python-m-from-the-command-line
 
 
-## Licença
+## License
 
 See the file [LICENSE.txt](LICENSE.txt)
 

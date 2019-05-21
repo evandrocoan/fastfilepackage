@@ -1,2 +1,0 @@
-rm $(cygpath -w "F:\Python\Lib\site-packages\voice.cp37-win_amd64.pyd") &&
-rm $(cygpath -w "F:\Python\Lib\site-packages\voicePkg-1.0-py3.7.egg-info")
