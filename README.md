@@ -14,7 +14,7 @@ Requires Python 3,
 pip3, distutils and
 C++ 11 compiler installed.
 ```
-sudo apt-get install build-essential python3-dev
+sudo apt-get install build-essential g++ python3-dev
 git clone https://github.com/evandrocoan/fastfilewrapper
 cd fastfilewrapper
 pip3 install .
