@@ -48,7 +48,7 @@ except Exception as error:
     sys.stderr.write( "Warning: Could not open README.md due %s\n" % error )
 
 try:
-    filepath = 'source/fastfilepackage/version.py'
+    filepath = 'source/version.h'
     with open( filepath, 'r' ) as file:
         __version__ ,= re.findall('__version__ = "(.*)"', file.read())
 
@@ -65,27 +65,23 @@ setup(
         license = "LGPLv2.1",
         url = 'https://github.com/evandrocoan/fastfilepackage',
 
-        package_dir = {
-            '': 'source',
-        },
-
-        packages = [
-            'fastfilepackage',
-        ],
-
-        data_files = [
-            ("", ["LICENSE.txt", "README.md"]),
-        ],
-
+        # https://docs.python.org/3.7/distutils/apiref.html#distutils.core.Extension
+        # https://stackoverflow.com/questions/10924885/is-it-possible-to-include-subdirectories-using-dist-utils-setup-py-as-part-of
         ext_modules= [
             Extension(
-                'fastfilepackage',
-                [
-                    'source/cppimplementation/fastfile.cpp',
-                    'source/cppimplementation/fastfilewrapper.cpp'
-                ]
+                name = 'fastfilepackage',
+                sources = [
+                    'source/fastfile.cpp',
+                    'source/fastfilewrapper.cpp'
+                ],
+                include_dirs = ['source'],
             )
         ],
+
+        # https://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute/
+        package_data = {
+                '': [ '**.txt', '**.md', '**.py', '**.h', '**.hpp', '**.c', '**.cpp' ],
+            },
 
         long_description = readme_contents,
         long_description_content_type='text/markdown',

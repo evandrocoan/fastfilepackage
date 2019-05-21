@@ -1,4 +1,5 @@
 #include <Python.h>
+#include "version.h"
 #include "fastfile.cpp"
 
 typedef struct
@@ -12,11 +13,16 @@ PyFastFile;
 // https://stackoverflow.com/questions/48786693/how-to-wrap-a-c-object-using-pure-python-extension-api-python3
 static PyModuleDef fastfilepackagemodule =
 {
+    // https://docs.python.org/3/c-api/module.html#c.PyModuleDef
     PyModuleDef_HEAD_INIT,
-    "fastfilepackage",
-    "Example module that wrapped a C++ object",
-    -1,
-    NULL, NULL, NULL, NULL, NULL
+    "fastfilepackage", /* name of module */
+    "Example module that wrapped a C++ object", /* module documentation, may be NULL */
+    -1, /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    NULL, /* PyMethodDef* m_methods */
+    NULL, /* inquiry m_reload */
+    NULL, /* traverseproc m_traverse */
+    NULL, /* inquiry m_clear */
+    NULL, /* freefunc m_free */
 };
 
 // initialize PyFastFile Object
@@ -131,10 +137,10 @@ PyMODINIT_FUNC PyInit_fastfilepackage(void)
     PyFastFileType.tp_dealloc = (destructor) PyFastFile_dealloc;
     PyFastFileType.tp_flags = Py_TPFLAGS_DEFAULT;
     PyFastFileType.tp_doc = "FastFile objects";
-    PyFastFileType.tp_methods = PyFastFile_methods;
 
-    //~ PyFastFileType.tp_members=Noddy_members;
-    PyFastFileType.tp_init=(initproc)PyFastFile_init;
+    PyFastFileType.tp_methods = PyFastFile_methods;
+    // PyFastFileType.tp_members = PyFastFile_members;
+    PyFastFileType.tp_init = (initproc) PyFastFile_init;
 
     if( PyType_Ready( &PyFastFileType) < 0 ) {
         return NULL;
@@ -145,6 +151,10 @@ PyMODINIT_FUNC PyInit_fastfilepackage(void)
     if( thismodule == NULL ) {
         return NULL;
     }
+
+    // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+    // https://stackoverflow.com/questions/3001239/define-a-global-in-a-python-module-from-a-c-api
+    PyObject_SetAttrString( thismodule, "__version__", Py_BuildValue( "s", __version__ ) );
 
     // Add FastFile class to thismodule allowing the use to create objects
     Py_INCREF( &PyFastFileType );
