@@ -1,5 +1,5 @@
 
-#include "fastfile.cpp"
+#include "../source/cppimplementation/fastfile.cpp"
 
 std::string encoding(const char* value, const int, const char* ) {
     return std::string{value};
