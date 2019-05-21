@@ -24,7 +24,7 @@ import re
 import sys
 import codecs
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 # https://bugs.python.org/issue35893
 from distutils.command import build_ext
