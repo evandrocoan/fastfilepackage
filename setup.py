@@ -53,7 +53,7 @@ setup(
         description = 'An module written with pure Python C Extensions to open a file and cache the more recent accessed lines',
         author = 'Evandro Coan',
         license = "LGPLv2.1",
-        url = 'https://github.com/evandrocoan/fastfilewrapper',
+        url = 'https://github.com/evandrocoan/fastfilepackage',
         ext_modules= [
         Extension(
                 'fastfilepackage',
