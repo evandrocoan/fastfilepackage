@@ -46,22 +46,62 @@ except Exception as error:
     readme_contents = ""
     sys.stderr.write( "Warning: Could not open README.md due %s\n" % error )
 
+try:
+    filepath = 'version.py'
+
+    with open( filepath, 'r' ) as file:
+        __version__ ,= re.findall('__version__ = "(.*)"', file.read())
+
+except Exception as error:
+    __version__ = "0.0.1"
+    sys.stderr.write( "Warning: Could not open '%s' due %s" % ( filepath, error ) )
+
 
 setup(
         name= 'fastfilepackage',
-        version= '1.0.4',
+        version= '1.0.6',
         description = 'An module written with pure Python C Extensions to open a file and cache the more recent accessed lines',
         author = 'Evandro Coan',
         license = "LGPLv2.1",
+
         url = 'https://github.com/evandrocoan/fastfilepackage',
+
+        packages = [
+            'fastfilepackage',
+        ],
+
         ext_modules= [
-        Extension(
+            Extension(
                 'fastfilepackage',
                 [
                     'fastfile.cpp',
                     'fastfilewrapper.cpp'
                 ]
             )
-        ]
+        ],
+
+        package_dir = {
+            '': 'source',
+        },
+
+        data_files = [
+            ("", ["LICENSE.txt"]),
+        ],
+
+        long_description = readme_contents,
+        long_description_content_type='text/markdown',
+        classifiers=[
+            'Development Status :: 5 - Production/Stable',
+            'Environment :: Console',
+            'Intended Audience :: Developers',
+            'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+            'Operating System :: OS Independent',
+            'Programming Language :: Python',
+            'Programming Language :: Python :: 3',
+            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
+            'Topic :: Software Development :: Libraries :: Python Modules',
+        ],
     )
 
