@@ -58,8 +58,8 @@ except Exception as error:
 
 
 setup(
-        name= 'fastfilepackage',
-        version= __version__,
+        name = 'fastfilepackage',
+        version = __version__,
         description = 'An module written with pure Python C Extensions to open a file and cache the more recent accessed lines',
         author = 'Evandro Coan',
         license = "LGPLv2.1",
@@ -77,9 +77,10 @@ setup(
             ("", ["LICENSE.txt", "README.md"]),
         ],
 
+        # https://stackoverflow.com/questions/56244851/how-to-use-setuptools-packages-and-ext-modules-with-the-same-name
         ext_modules= [
             Extension(
-                'fastfilepackage',
+                'fastfilepackage.fastfilewrapper',
                 [
                     'source/cppimplementation/fastfile.cpp',
                     'source/cppimplementation/fastfilewrapper.cpp'
