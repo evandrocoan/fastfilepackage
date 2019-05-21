@@ -77,10 +77,9 @@ setup(
             ("", ["LICENSE.txt", "README.md"]),
         ],
 
-        # https://stackoverflow.com/questions/56244851/how-to-use-setuptools-packages-and-ext-modules-with-the-same-name
         ext_modules= [
             Extension(
-                'fastfilepackage.fastfilewrapper',
+                'fastfilepackage',
                 [
                     'source/cppimplementation/fastfile.cpp',
                     'source/cppimplementation/fastfilewrapper.cpp'

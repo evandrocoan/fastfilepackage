@@ -10,10 +10,10 @@ PyFastFile;
 
 // https://gist.github.com/physacco/2e1b52415f3a964ad2a542a99bebed8f
 // https://stackoverflow.com/questions/48786693/how-to-wrap-a-c-object-using-pure-python-extension-api-python3
-static PyModuleDef fastfilewrappermodule =
+static PyModuleDef fastfilepackagemodule =
 {
     PyModuleDef_HEAD_INIT,
-    "fastfilewrapper",
+    "fastfilepackage",
     "Example module that wrapped a C++ object",
     -1,
     NULL, NULL, NULL, NULL, NULL
@@ -113,11 +113,11 @@ static PyMethodDef PyFastFile_methods[] =
 static PyTypeObject PyFastFileType =
 {
     PyVarObject_HEAD_INIT( NULL, 0 )
-    "fastfilewrapper.FastFile" /* tp_name */
+    "fastfilepackage.FastFile" /* tp_name */
 };
 
 // create the module
-PyMODINIT_FUNC PyInit_fastfilewrapper(void)
+PyMODINIT_FUNC PyInit_fastfilepackage(void)
 {
     PyObject* thismodule;
 
@@ -140,7 +140,7 @@ PyMODINIT_FUNC PyInit_fastfilewrapper(void)
         return NULL;
     }
 
-    thismodule = PyModule_Create(&fastfilewrappermodule);
+    thismodule = PyModule_Create(&fastfilepackagemodule);
 
     if( thismodule == NULL ) {
         return NULL;
