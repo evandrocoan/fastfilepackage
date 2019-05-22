@@ -112,7 +112,7 @@ static PyMethodDef PyFastFile_methods[] =
     { "getlines", (PyCFunction) PyFastFile_getlines, METH_VARARGS, "Return a string with `nth` cached lines" },
     { "resetlines", (PyCFunction) PyFastFile_resetlines, METH_NOARGS, "Reset the current line counter" },
     { "line", (PyCFunction) PyFastFile_tp_call, METH_NOARGS, "Return the next line or an empty string on the file end" },
-    { "next", (PyCFunction) PyFastFile_iternext, METH_NOARGS, "Advances the iterator to the next next line" },
+    { "next", (PyCFunction) PyFastFile_iternext, METH_NOARGS, "Advances the iterator to the next line" },
     { NULL, NULL, 0, NULL }  /* Sentinel */
 };
 
