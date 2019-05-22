@@ -48,7 +48,9 @@ except Exception as error:
     sys.stderr.write( "Warning: Could not open README.md due %s\n" % error )
 
 try:
+    # https://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package
     filepath = 'source/version.h'
+
     with open( filepath, 'r' ) as file:
         __version__ ,= re.findall('__version__ = "(.*)"', file.read())
 
