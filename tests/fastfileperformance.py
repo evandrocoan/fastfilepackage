@@ -18,7 +18,7 @@ print( 'Python   timedifference', timedifference )
 timenow = time.time()
 iterable = fastfilepackage.FastFile( testfile )
 for item in iterable:
-    if 'word' in iterable():
+    if 'word' in item:
         pass
 
 timedifference = time.time() - timenow

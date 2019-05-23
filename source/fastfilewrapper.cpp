@@ -70,8 +70,9 @@ static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
         return NULL;
     }
 
-    Py_INCREF( Py_None );
-    return Py_None;
+    PyObject* retval = (self->cppobjectpointer)->call();
+    Py_XINCREF( retval );
+    return retval;
 }
 
 static PyObject* PyFastFile_getlines(PyFastFile* self, PyObject* args)
