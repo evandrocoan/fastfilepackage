@@ -66,7 +66,7 @@ struct FastFile
         return stream.str();
     }
 
-    bool getline() {
+    bool _getline() {
         std::string newline;
 
         if( std::getline( fileifstream, newline ) ) {
@@ -90,7 +90,7 @@ struct FastFile
             linecache.pop_front();
             return true;
         }
-        bool boolline = getline();
+        bool boolline = _getline();
 
         // fprintf( stderr, "boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
         return boolline;
@@ -106,7 +106,7 @@ struct FastFile
         }
         else
         {
-            if( !getline() )
+            if( !_getline() )
             {
                 // fprintf( stderr, "Raising StopIteration\n" );
                 return emtpycacheobject;
