@@ -45,8 +45,8 @@ struct FastFile
         }
     }
 
-    void resetlines() {
-        currentline = -1;
+    void resetlines(int linetoreset=-1) {
+        currentline = linetoreset;
     }
 
     std::string getlines(unsigned int linestoget) {
