@@ -58,9 +58,7 @@ static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
     return (PyObject*) self;
 }
 
-static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
-{
-    (self->cppobjectpointer)->resetlines();
+static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args) {
     bool next = (self->cppobjectpointer)->next();
 
     // printf( "PyFastFile_iternext: %d\n", next );
