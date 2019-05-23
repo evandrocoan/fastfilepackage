@@ -26,7 +26,7 @@ static PyModuleDef fastfilepackagemodule =
 };
 
 // initialize PyFastFile Object
-static int PyFastFile_init(PyFastFile* self, PyObject *args, PyObject *kwds) {
+static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwds) {
     char* filepath;
 
     if( !PyArg_ParseTuple( args, "s", &filepath ) ) {
@@ -47,23 +47,23 @@ static void PyFastFile_dealloc(PyFastFile* self)
     }
     // https://stackoverflow.com/questions/56212363/should-i-call-delete-or-py-xdecref-for-a-c-class-on-custom-dealloc-for-python
     delete self->cppobjectpointer;
-    Py_TYPE( self)->tp_free( (PyObject *) self );
+    Py_TYPE(self)->tp_free( (PyObject*) self );
 }
 
-static PyObject * PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
-    PyObject *retvalue = (self->cppobjectpointer)->call( PyUnicode_DecodeUTF8 );
+static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
+    PyObject* retvalue = (self->cppobjectpointer)->call( PyUnicode_DecodeUTF8 );
 
     Py_XINCREF( retvalue );
     return retvalue;
 }
 
-static PyObject * PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
+static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 {
     Py_INCREF( self );
-    return (PyObject *) self;
+    return (PyObject*) self;
 }
 
-static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
+static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
     bool next = (self->cppobjectpointer)->next( PyUnicode_DecodeUTF8 );
@@ -79,7 +79,7 @@ static PyObject * PyFastFile_iternext(PyFastFile* self, PyObject* args)
     return Py_None;
 }
 
-static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
+static PyObject* PyFastFile_getlines(PyFastFile* self, PyObject* args)
 {
     std::string retval;
     unsigned int linestoget;
@@ -92,14 +92,14 @@ static PyObject * PyFastFile_getlines(PyFastFile* self, PyObject* args)
     return PyUnicode_DecodeUTF8( retval.c_str(), retval.size(), "replace" );
 }
 
-static PyObject * PyFastFile_resetlines(PyFastFile* self, PyObject* args)
+static PyObject* PyFastFile_resetlines(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
     Py_INCREF( Py_None );
     return Py_None;
 }
 
-static PyObject * PyFastFile_close(PyFastFile* self, PyObject* args)
+static PyObject* PyFastFile_close(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->close();
     Py_INCREF( Py_None );
@@ -158,6 +158,6 @@ PyMODINIT_FUNC PyInit_fastfilepackage(void)
 
     // Add FastFile class to thismodule allowing the use to create objects
     Py_INCREF( &PyFastFileType );
-    PyModule_AddObject( thismodule, "FastFile", (PyObject *) &PyFastFileType );
+    PyModule_AddObject( thismodule, "FastFile", (PyObject*) &PyFastFileType );
     return thismodule;
 }

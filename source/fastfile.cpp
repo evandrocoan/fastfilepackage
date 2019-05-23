@@ -67,10 +67,10 @@ struct FastFile
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
 
-            // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush(stderr);
+            // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush( stderr );
             CacheType pythonobject = decoding( newline.c_str(), newline.size(), "replace" );
 
-            // fprintf(stderr, "pythonobject '%d'\n", pythonobject); fflush(stderr);
+            // fprintf( stderr, "pythonobject '%d'\n", pythonobject ); fflush( stderr );
             linecache.push_back( pythonobject );
             return true;
         }
