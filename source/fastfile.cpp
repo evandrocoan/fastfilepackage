@@ -1,3 +1,4 @@
+#include <Python.h>
 #include <cstdio>
 #include <string>
 #include <iostream>
@@ -5,14 +6,14 @@
 #include <fstream>
 #include <deque>
 
-template <typename CacheType>
 struct FastFile
 {
     const char* filepath;
     long long int linecount;
     long long int currentline;
 
-    std::deque<CacheType> linecache;
+    PyObject* emtpycacheobject;
+    std::deque<PyObject*> linecache;
     std::ifstream fileifstream;
 
     FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
@@ -20,6 +21,7 @@ struct FastFile
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
         fileifstream.open( filepath );
+        emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
 
         if( fileifstream.fail() ) {
             std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
@@ -29,6 +31,11 @@ struct FastFile
     ~FastFile() {
         // fprintf( stderr, "~FastFile Destructor linecount %d currentline %d\n", linecount, currentline );
         this->close();
+        Py_XDECREF( emtpycacheobject );
+
+        for( PyObject* pyobject : linecache ) {
+            Py_XDECREF( pyobject );
+        }
     }
 
     void close() {
@@ -42,15 +49,14 @@ struct FastFile
         currentline = -1;
     }
 
-    template<typename Encoding>
-    std::string getlines(unsigned int linestoget, Encoding encoding) {
+    std::string getlines(unsigned int linestoget) {
         std::stringstream stream;
         unsigned int current = 1;
         const char* cppline;
 
-        for( CacheType line : linecache ) {
+        for( PyObject* line : linecache ) {
             ++current;
-            cppline = encoding( line );
+            cppline = PyUnicode_AsUTF8( line );
             stream << std::string{cppline};
 
             if( linestoget < current ) {
@@ -60,15 +66,14 @@ struct FastFile
         return stream.str();
     }
 
-    template<typename Decoding>
-    bool getline(Decoding decoding) {
+    bool getline() {
         std::string newline;
 
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
 
             // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush( stderr );
-            CacheType pythonobject = decoding( newline.c_str(), newline.size(), "replace" );
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
 
             // fprintf( stderr, "pythonobject '%d'\n", pythonobject ); fflush( stderr );
             linecache.push_back( pythonobject );
@@ -77,36 +82,34 @@ struct FastFile
         return false;
     }
 
-    template<typename Decoding>
-    bool next(Decoding decoding) {
+    bool next() {
         resetlines();
 
         if( linecache.size() ) {
+            Py_XDECREF( linecache[0] );
             linecache.pop_front();
             return true;
         }
-        bool boolline = getline( decoding );
+        bool boolline = getline();
 
         // fprintf( stderr, "boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
         return boolline;
     }
 
-    template<typename Decoding>
-    CacheType call(Decoding decoding)
+    PyObject* call()
     {
         currentline += 1;
         // fprintf( stderr, "linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
 
-        if( currentline < linecache.size() )
-        {
+        if( currentline < linecache.size() ) {
             return linecache[currentline];
         }
         else
         {
-            if( !getline( decoding ) )
+            if( !getline() )
             {
                 // fprintf( stderr, "Raising StopIteration\n" );
-                return decoding( "", 0, "replace" );
+                return emtpycacheobject;
             }
         }
         // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );

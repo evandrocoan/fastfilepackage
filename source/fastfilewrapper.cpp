@@ -5,7 +5,7 @@
 typedef struct
 {
     PyObject_HEAD
-    FastFile<PyObject*>* cppobjectpointer;
+    FastFile* cppobjectpointer;
 }
 PyFastFile;
 
@@ -33,25 +33,20 @@ static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwds) {
         return -1;
     }
 
-    self->cppobjectpointer = new FastFile<PyObject*>( filepath );
+    self->cppobjectpointer = new FastFile( filepath );
     return 0;
 }
 
 // destruct the object
 static void PyFastFile_dealloc(PyFastFile* self)
 {
-    if( self->cppobjectpointer ) {
-        for( PyObject* pyobject : self->cppobjectpointer->linecache ) {
-            Py_XDECREF( pyobject );
-        }
-    }
     // https://stackoverflow.com/questions/56212363/should-i-call-delete-or-py-xdecref-for-a-c-class-on-custom-dealloc-for-python
     delete self->cppobjectpointer;
     Py_TYPE(self)->tp_free( (PyObject*) self );
 }
 
 static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
-    PyObject* retvalue = (self->cppobjectpointer)->call( PyUnicode_DecodeUTF8 );
+    PyObject* retvalue = (self->cppobjectpointer)->call();
 
     Py_XINCREF( retvalue );
     return retvalue;
@@ -66,7 +61,7 @@ static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
     (self->cppobjectpointer)->resetlines();
-    bool next = (self->cppobjectpointer)->next( PyUnicode_DecodeUTF8 );
+    bool next = (self->cppobjectpointer)->next();
 
     // printf( "PyFastFile_iternext: %d\n", next );
     if( !( next ) )
@@ -88,7 +83,7 @@ static PyObject* PyFastFile_getlines(PyFastFile* self, PyObject* args)
         return NULL;
     }
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-    retval = (self->cppobjectpointer)->getlines( linestoget, PyUnicode_AsUTF8 );
+    retval = (self->cppobjectpointer)->getlines( linestoget );
     return PyUnicode_DecodeUTF8( retval.c_str(), retval.size(), "replace" );
 }
 
