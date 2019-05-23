@@ -46,7 +46,7 @@ struct FastFile
     }
 
     void resetlines() {
-        currentline = 0;
+        currentline = -1;
     }
 
     std::string getlines(unsigned int linestoget) {
@@ -61,6 +61,9 @@ struct FastFile
 
             if( linestoget < current ) {
                 break;
+            }
+            else {
+                stream << '\n';
             }
         }
         return stream.str();
