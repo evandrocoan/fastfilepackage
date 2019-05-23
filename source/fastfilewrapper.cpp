@@ -26,7 +26,7 @@ static PyModuleDef fastfilepackagemodule =
 };
 
 // initialize PyFastFile Object
-static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwds) {
+static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwargs) {
     char* filepath;
 
     if( !PyArg_ParseTuple( args, "s", &filepath ) ) {
@@ -45,7 +45,7 @@ static void PyFastFile_dealloc(PyFastFile* self)
     Py_TYPE(self)->tp_free( (PyObject*) self );
 }
 
-static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args) {
+static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args, PyObject *kwargs) {
     PyObject* retvalue = (self->cppobjectpointer)->call();
 
     Py_XINCREF( retvalue );
