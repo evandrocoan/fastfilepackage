@@ -75,10 +75,10 @@ struct FastFile
         if( std::getline( fileifstream, newline ) ) {
             linecount += 1;
 
-            // fprintf( stderr, "linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush( stderr );
+            // fprintf( stderr, "_getline linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush( stderr );
             PyObject* pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
 
-            // fprintf( stderr, "pythonobject '%d'\n", pythonobject ); fflush( stderr );
+            // fprintf( stderr, "_getline pythonobject '%d'\n", pythonobject ); fflush( stderr );
             linecache.push_back( pythonobject );
             return true;
         }
@@ -95,14 +95,14 @@ struct FastFile
         }
         bool boolline = _getline();
 
-        // fprintf( stderr, "boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
+        // fprintf( stderr, "next boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
         return boolline;
     }
 
     PyObject* call()
     {
         currentline += 1;
-        // fprintf( stderr, "linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
+        // fprintf( stderr, "call linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
 
         if( currentline < linecache.size() ) {
             return linecache[currentline];
@@ -115,7 +115,7 @@ struct FastFile
                 return emtpycacheobject;
             }
         }
-        // std::ostringstream contents; for( auto value : linecache ) contents << value; fprintf( stderr, "contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
+        // std::ostringstream contents; for( auto value : linecache ) contents << PyUnicode_AsUTF8( value ); fprintf( stderr, "call contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
         return linecache[currentline];
     }
 };
