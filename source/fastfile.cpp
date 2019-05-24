@@ -6,6 +6,16 @@
 #include <fstream>
 #include <deque>
 
+// https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
+// https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
+#if defined(__unix__)
+    #define USE_POSIX_GETLINE
+
+    #if defined(USE_STD_GETLINE) && USE_STD_GETLINE == 1
+        #undef USE_POSIX_GETLINE
+    #endif
+#endif
+
 struct FastFile
 {
     size_t linebuffersize;
@@ -18,13 +28,13 @@ struct FastFile
     PyObject* emtpycacheobject;
     std::deque<PyObject*> linecache;
 
-#ifdef __unix__
+#ifdef USE_POSIX_GETLINE
     FILE* cfilestream;
 #else
     std::ifstream fileifstream;
 #endif
 
-    FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0), linebuffersize(131072)
+    FastFile(const char* filepath) : linebuffersize(131072), filepath(filepath), linecount(0), currentline(0)
     {
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
@@ -36,7 +46,7 @@ struct FastFile
             std::cerr << "ERROR: FastFile failed to alocate internal line buffer!" << std::endl;
         }
 
-    #ifdef __unix__
+    #ifdef USE_POSIX_GETLINE
         cfilestream = fopen( filepath, "r" );
 
         if( cfilestream == NULL ) {
@@ -67,7 +77,7 @@ struct FastFile
 
     void close() {
         // fprintf( stderr, "FastFile closing the file linecount %d currentline %d\n", linecount, currentline );
-    #ifdef __unix__
+    #ifdef USE_POSIX_GETLINE
         if( cfilestream != NULL ) {
             fclose( cfilestream );
         }
@@ -102,10 +112,9 @@ struct FastFile
         return stream.str();
     }
 
-    // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
     // https://stackoverflow.com/questions/11350878/how-can-i-determine-if-the-operating-system-is-posix-in-c
     bool _getline() {
-    #ifdef __unix__
+    #ifdef USE_POSIX_GETLINE
         ssize_t nread;
         if( ( nread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
         {

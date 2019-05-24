@@ -21,6 +21,7 @@
 #
 
 import re
+import os
 import sys
 import codecs
 
@@ -58,6 +59,18 @@ except Exception as error:
     __version__ = "0.0.1"
     sys.stderr.write( "Warning: Could not open '%s' due %s" % ( filepath, error ) )
 
+define_macros = []
+
+# USE_STD_GETLINE=1 pip3 install .
+# set "USE_STD_GETLINE=1" && pip3 install .
+# https://stackoverflow.com/questions/677577/distutils-how-to-pass-a-user-defined-parameter-to-setup-py
+environment_variable_name = 'USE_STD_GETLINE'
+environment_variable_value = os.environ.get( environment_variable_name, None )
+
+if environment_variable_value is not None:
+    sys.stderr.write( "Using '%s=%s' environment variable!\n" % (
+            environment_variable_name, environment_variable_value ) )
+    define_macros.append( (environment_variable_name, environment_variable_value) )
 
 setup(
         name = 'fastfilepackage',
@@ -77,6 +90,7 @@ setup(
                     'source/fastfilewrapper.cpp'
                 ],
                 include_dirs = ['source'],
+                define_macros = define_macros,
             )
         ],
 

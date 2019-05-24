@@ -29,6 +29,31 @@ Or install it with:
 pip3 install fastfilepackage
 ```
 
+# Performance improvements
+
+You can have `70%` of increment if you use a Posix complaint system as Linux or Cygwin.
+
+If you would like to disable this,
+just define `USE_STD_GETLINE=1` macro by calling the installer like this,
+if you are on Linux or Cygwin/Posix:
+```
+MY_ENVIRONMENT_VARIABLE=1 pip install .
+MY_ENVIRONMENT_VARIABLE=1 pip install -e .
+
+MY_ENVIRONMENT_VARIABLE=1 python setup.py install
+MY_ENVIRONMENT_VARIABLE=1 python setup.py develop
+```
+
+But,
+if you are on Windows,
+run it like this:
+```
+set "MY_ENVIRONMENT_VARIABLE=1" && pip install .
+set "MY_ENVIRONMENT_VARIABLE=1" && pip install -e .
+set "MY_ENVIRONMENT_VARIABLE=1" && python setup.py install
+set "MY_ENVIRONMENT_VARIABLE=1" && python setup.py develop
+```
+
 
 ## Debugging
 
