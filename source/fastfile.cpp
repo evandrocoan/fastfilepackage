@@ -115,13 +115,14 @@ struct FastFile
     // https://stackoverflow.com/questions/11350878/how-can-i-determine-if-the-operating-system-is-posix-in-c
     bool _getline() {
     #ifdef USE_POSIX_GETLINE
-        ssize_t nread;
-        if( ( nread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
+        ssize_t charsread;
+        if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
         {
             linecount += 1;
-            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, readline.c_str() ); fflush( stderr );
+            readline[charsread-1] = '\0';
+            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, readline ); fflush( stderr );
 
-            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, nread, "replace" );
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
             linecache.push_back( pythonobject );
             // fprintf( stderr, "_getline pythonobject '%d'\n", pythonobject ); fflush( stderr );
 
@@ -134,7 +135,7 @@ struct FastFile
         {
             linecount += 1;
             fileifstream.getline( readline, linebuffersize );
-            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, readline.c_str() ); fflush( stderr );
+            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, readline ); fflush( stderr );
 
             PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, fileifstream.gcount(), "replace" );
             linecache.push_back( pythonobject );
