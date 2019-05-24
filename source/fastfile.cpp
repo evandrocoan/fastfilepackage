@@ -68,6 +68,7 @@ struct FastFile
 
         if( readline ) {
             free( readline );
+            readline = NULL;
         }
 
         for( PyObject* pyobject : linecache ) {
@@ -80,6 +81,7 @@ struct FastFile
     #ifdef USE_POSIX_GETLINE
         if( cfilestream != NULL ) {
             fclose( cfilestream );
+            cfilestream = NULL;
         }
     #else
         if( fileifstream.is_open() ) {
