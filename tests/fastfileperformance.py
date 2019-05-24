@@ -13,7 +13,7 @@ with open( testfile, 'r', errors='replace' ) as myfile:
 
 timedifference = time.time() - timenow
 timedifference = datetime.timedelta( seconds=timedifference )
-print( 'Python   timedifference', timedifference )
+print( 'Python   timedifference', timedifference, flush=True )
 
 timenow = time.time()
 iterable = fastfilepackage.FastFile( testfile )
@@ -23,4 +23,4 @@ for item in iterable:
 
 timedifference = time.time() - timenow
 timedifference = datetime.timedelta( seconds=timedifference )
-print( 'FastFile timedifference', timedifference )
+print( 'FastFile timedifference', timedifference, flush=True )
