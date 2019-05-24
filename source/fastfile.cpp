@@ -8,30 +8,57 @@
 
 struct FastFile
 {
+    size_t linebuffersize;
     const char* filepath;
+
     long long int linecount;
     long long int currentline;
 
+    char* readline;
     PyObject* emtpycacheobject;
     std::deque<PyObject*> linecache;
-    std::ifstream fileifstream;
 
-    FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
+#ifdef __unix__
+    FILE* cfilestream;
+#else
+    std::ifstream fileifstream;
+#endif
+
+    FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0), linebuffersize(131072)
     {
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
-        fileifstream.open( filepath );
+
+        readline = (char*) malloc( linebuffersize );
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
+
+        if( readline == NULL ) {
+            std::cerr << "ERROR: FastFile failed to alocate internal line buffer!" << std::endl;
+        }
+
+    #ifdef __unix__
+        cfilestream = fopen( filepath, "r" );
+
+        if( cfilestream == NULL ) {
+            std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
+        }
+    #else
+        fileifstream.open( filepath );
 
         if( fileifstream.fail() ) {
             std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
         }
+    #endif
     }
 
     ~FastFile() {
         // fprintf( stderr, "~FastFile Destructor linecount %d currentline %d\n", linecount, currentline );
         this->close();
         Py_XDECREF( emtpycacheobject );
+
+        if( readline ) {
+            free( readline );
+        }
 
         for( PyObject* pyobject : linecache ) {
             Py_XDECREF( pyobject );
@@ -40,9 +67,15 @@ struct FastFile
 
     void close() {
         // fprintf( stderr, "FastFile closing the file linecount %d currentline %d\n", linecount, currentline );
+    #ifdef __unix__
+        if( cfilestream != NULL ) {
+            fclose( cfilestream );
+        }
+    #else
         if( fileifstream.is_open() ) {
             fileifstream.close();
         }
+    #endif
     }
 
     void resetlines(int linetoreset=-1) {
@@ -69,19 +102,40 @@ struct FastFile
         return stream.str();
     }
 
+    // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
+    // https://stackoverflow.com/questions/11350878/how-can-i-determine-if-the-operating-system-is-posix-in-c
     bool _getline() {
-        std::string newline;
-
-        if( std::getline( fileifstream, newline ) ) {
+    #ifdef __unix__
+        ssize_t nread;
+        if( ( nread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
+        {
             linecount += 1;
+            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, readline.c_str() ); fflush( stderr );
 
-            // fprintf( stderr, "_getline linecount %d currentline %d newline '%s'\n", linecount, currentline, newline.c_str() ); fflush( stderr );
-            PyObject* pythonobject = PyUnicode_DecodeUTF8( newline.c_str(), newline.size(), "replace" );
-
-            // fprintf( stderr, "_getline pythonobject '%d'\n", pythonobject ); fflush( stderr );
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, nread, "replace" );
             linecache.push_back( pythonobject );
+            // fprintf( stderr, "_getline pythonobject '%d'\n", pythonobject ); fflush( stderr );
+
+            // Py_XINCREF( emtpycacheobject );
+            // linecache.push_back( emtpycacheobject );
             return true;
         }
+    #else
+        if( !fileifstream.eof() )
+        {
+            linecount += 1;
+            fileifstream.getline( readline, linebuffersize );
+            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, readline.c_str() ); fflush( stderr );
+
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, fileifstream.gcount(), "replace" );
+            linecache.push_back( pythonobject );
+            // fprintf( stderr, "_getline pythonobject '%d'\n", pythonobject ); fflush( stderr );
+
+            // Py_XINCREF( emtpycacheobject );
+            // linecache.push_back( emtpycacheobject );
+            return true;
+        }
+    #endif
         return false;
     }
 
