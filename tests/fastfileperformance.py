@@ -11,8 +11,8 @@ with open( testfile, 'r', errors='replace' ) as myfile:
         if 'word' in item:
             pass
 
-timedifference = time.time() - timenow
-timedifference = datetime.timedelta( seconds=timedifference )
+python_time = time.time() - timenow
+timedifference = datetime.timedelta( seconds=python_time )
 print( 'Python   timedifference', timedifference, flush=True )
 
 timenow = time.time()
@@ -21,6 +21,8 @@ for item in iterable:
     if 'word' in item:
         pass
 
-timedifference = time.time() - timenow
-timedifference = datetime.timedelta( seconds=timedifference )
+fastfile_time = time.time() - timenow
+timedifference = datetime.timedelta( seconds=fastfile_time )
 print( 'FastFile timedifference', timedifference, flush=True )
+print( 'fastfile_time %.2f%%, python_time %.2f%%' % (
+        fastfile_time/python_time, python_time/fastfile_time ), flush=True )
