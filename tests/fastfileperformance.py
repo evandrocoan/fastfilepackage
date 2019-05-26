@@ -25,5 +25,6 @@ for item in iterable:
 fastfile_time = time.time() - timenow
 timedifference = datetime.timedelta( seconds=fastfile_time )
 print( 'FastFile timedifference', timedifference, flush=True )
-print( 'fastfile_time %.2f%%, python_time %.2f%%' % (
-        fastfile_time/python_time, python_time/fastfile_time ), flush=True )
+print( 'fastfile_time %.2f%%, python_time %.2f%% = %.2f%%' % (
+        fastfile_time/python_time, python_time/fastfile_time,
+        abs( 1 - python_time/fastfile_time ) ), flush=True )
