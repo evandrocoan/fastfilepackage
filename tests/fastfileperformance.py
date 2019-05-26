@@ -9,6 +9,7 @@ testfile = './myfile.log'
 timenow = time.time()
 iterable = io.open( testfile, 'r' )
 for item in iterable:
+    # print( "item1 %r" % item ); break
     if None:
         var = item
 
@@ -19,6 +20,7 @@ print( 'Python   timedifference', timedifference, flush=True )
 timenow = time.time()
 iterable = fastfilepackage.FastFile( testfile )
 for item in iterable:
+    # print( "item2 %r" % item ); break
     if None:
         item = var
 
