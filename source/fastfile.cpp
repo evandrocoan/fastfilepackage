@@ -133,10 +133,9 @@ struct FastFile {
             stream << std::string{cppline};
 
             if( linestoget < current ) {
+                stream.seekp( -1, std::ios_base::end );
+                stream << " ";
                 break;
-            }
-            else {
-                stream << '\n';
             }
         }
         return stream.str();
