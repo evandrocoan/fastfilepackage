@@ -82,7 +82,7 @@ struct FastFile {
     }
 
     ~FastFile() {
-        // fprintf( stderr, "~FastFile Destructor linecount %d currentline %d\n", linecount, currentline );
+        // fprintf( stderr, "~FastFile Destructor linecount %llu currentline %llu\n", linecount, currentline );
         this->close();
         Py_XDECREF( emtpycacheobject );
         Py_XDECREF( iomodule );
@@ -95,7 +95,7 @@ struct FastFile {
     }
 
     void close() {
-        // fprintf( stderr, "FastFile closing the file linecount %d currentline %d\n", linecount, currentline );
+        // fprintf( stderr, "FastFile closing the file linecount %llu currentline %llu\n", linecount, currentline );
         PyObject* closefunction = PyObject_GetAttrString( openfile, "close" );
 
         if( closefunction == NULL ) {
@@ -147,10 +147,10 @@ struct FastFile {
 
         if( readline != NULL ) {
             linecount += 1;
-            // fprintf( stderr, "_getline linecount %d currentline %d readline '%s'\n", linecount, currentline, PyUnicode_AsUTF8( readline ) ); fflush( stderr );
+            // fprintf( stderr, "_getline linecount %llu currentline %llu readline '%s'\n", linecount, currentline, PyUnicode_AsUTF8( readline ) ); fflush( stderr );
 
             linecache.push_back( readline );
-            // fprintf( stderr, "_getline readline '%d'\n", readline ); fflush( stderr );
+            // fprintf( stderr, "_getline readline '%p'\n", readline ); fflush( stderr );
             return true;
         }
 
@@ -169,16 +169,16 @@ struct FastFile {
         }
         bool boolline = _getline();
 
-        // fprintf( stderr, "next boolline: %d linecount %d currentline %d\n", boolline, linecount, currentline );
+        // fprintf( stderr, "next boolline: %d linecount %llu currentline %llu\n", boolline, linecount, currentline );
         return boolline;
     }
 
     PyObject* call()
     {
         currentline += 1;
-        // fprintf( stderr, "call linecache.size %d linecount %d currentline %d\n", linecache.size(), linecount, currentline );
+        // fprintf( stderr, "call linecache.size %zd linecount %llu currentline %llu\n", linecache.size(), linecount, currentline );
 
-        if( currentline < linecache.size() ) {
+        if( currentline < static_cast<long long int>( linecache.size() ) ) {
             return linecache[currentline];
         }
         else
@@ -189,7 +189,7 @@ struct FastFile {
                 return emtpycacheobject;
             }
         }
-        // std::ostringstream contents; for( auto value : linecache ) contents << PyUnicode_AsUTF8( value ); fprintf( stderr, "call contents %s**\n**linecache.size %d linecount %d currentline %d (%d)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
+        // std::ostringstream contents; for( auto value : linecache ) contents << PyUnicode_AsUTF8( value ); fprintf( stderr, "call contents %s**\n**linecache.size %zd linecount %llu currentline %llu (%p)\n", contents.str().c_str(), linecache.size(), linecount, currentline, linecache[currentline] );
         return linecache[currentline];
     }
 };
