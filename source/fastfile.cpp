@@ -12,6 +12,7 @@
 struct FastFile {
     const char* filepath;
 
+    bool hasfinished;
     long long int linecount;
     long long int currentline;
 
@@ -23,7 +24,7 @@ struct FastFile {
     PyObject* fileiterator;
 
     // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
-    FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
+    FastFile(const char* filepath) : filepath(filepath), hasfinished(false), linecount(0), currentline(0)
     {
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
@@ -145,6 +146,8 @@ struct FastFile {
 
     // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
     bool _getline() {
+        // Fix StopIteration being raised multiple times because _getlines is called multiple times
+        if( hasfinished ) { return false; }
         PyObject* readline = PyObject_CallObject( fileiterator, NULL );
 
         if( readline != NULL ) {
@@ -156,9 +159,9 @@ struct FastFile {
             return true;
         }
 
-        // Fix StopIteration being raised multiple times because _getlines is called multiple times
         // PyErr_Print();
         PyErr_Clear();
+        hasfinished = true;
         return false;
     }
 
