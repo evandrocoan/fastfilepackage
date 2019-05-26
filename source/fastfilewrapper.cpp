@@ -2,13 +2,28 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <cstdio>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <deque>
+
 #include "version.h"
-#include "fastfile.cpp"
 
 typedef struct
 {
     PyObject_HEAD
-    FastFile* cppobjectpointer;
+    PyObject* iomodule;
+    PyObject* openfile;
+    PyObject* fileiterator;
+    PyObject* emtpycacheobject;
+
+    long long int linecount;
+    long long int currentline;
+
+    std::deque<PyObject*>* linecache;
+    const char* filepath;
 }
 PyFastFile;
 
@@ -31,28 +46,133 @@ static PyModuleDef fastfilepackagemodule =
 // initialize PyFastFile Object
 static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwargs) {
     char* filepath;
-
     if( !PyArg_ParseTuple( args, "s", &filepath ) ) {
         return -1;
     }
 
-    self->cppobjectpointer = new FastFile( filepath );
+    // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
+    self->linecount = 0;
+    self->currentline = 0;
+    self->linecache = new std::deque<PyObject*>();
+    self->filepath = filepath;
+
+    self->iomodule = PyImport_ImportModule( "io" );
+    self->emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
+
+    if( self->emtpycacheobject == NULL ) {
+        std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return -1;
+    }
+
+    if( self->iomodule == NULL ) {
+        std::cerr << "ERROR: FastFile failed to import the io module (and open the file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return -1;
+    }
+    PyObject* openfunction = PyObject_GetAttrString( self->iomodule, "open" );
+
+    if( openfunction == NULL ) {
+        std::cerr << "ERROR: FastFile failed get the io module open function (and open the file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return -1;
+    }
+    self->openfile = PyObject_CallFunction( openfunction, "s", self->filepath, "s", "r", "i", -1, "s", "UTF8", "s", "replace" );
+    PyObject* iterfunction = PyObject_GetAttrString( self->openfile, "__iter__" );
+    Py_DECREF( openfunction );
+
+    if( iterfunction == NULL ) {
+        std::cerr << "ERROR: FastFile failed get the io module iterator function (and open the file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return -1;
+    }
+    PyObject* openfileresult = PyObject_CallObject( iterfunction, NULL );
+    Py_DECREF( iterfunction );
+
+    if( openfileresult == NULL ) {
+        std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return -1;
+    }
+    self->fileiterator = PyObject_GetAttrString( self->openfile, "__next__" );
+    Py_DECREF( openfileresult );
+
+    if( self->fileiterator == NULL ) {
+        std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return -1;
+    }
+
     return 0;
 }
 
 // destruct the object
-static void PyFastFile_dealloc(PyFastFile* self)
-{
+static PyObject* PyFastFile_close(PyFastFile* self, PyObject* args);
+
+static void PyFastFile_dealloc(PyFastFile* self) {
+    // fprintf( stderr, "~FastFile Destructor linecount %llu currentline %llu\n", self->linecount, self->currentline );
+
     // https://stackoverflow.com/questions/56212363/should-i-call-delete-or-py-xdecref-for-a-c-class-on-custom-dealloc-for-python
-    delete self->cppobjectpointer;
+    PyFastFile_close( self, NULL );
+
+    Py_XDECREF( self->emtpycacheobject );
+    Py_XDECREF( self->iomodule );
+    Py_XDECREF( self->openfile );
+    Py_XDECREF( self->fileiterator );
+
+    for( PyObject* pyobject : *self->linecache ) {
+        Py_DECREF( pyobject );
+    }
+
+    delete self->linecache;
     Py_TYPE(self)->tp_free( (PyObject*) self );
+}
+
+// https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
+static bool PyFastFile__getline(PyFastFile* self) {
+    PyObject* readline = PyObject_CallObject( self->fileiterator, NULL );
+
+    if( readline != NULL ) {
+        self->linecount += 1;
+        // fprintf( stderr, "_getline linecount %llu currentline %llu readline '%s'\n", self->linecount, self->currentline, PyUnicode_AsUTF8( readline ) ); fflush( stderr );
+
+        self->linecache->push_back( readline );
+        // fprintf( stderr, "_getline readline '%p'\n", readline ); fflush( stderr );
+        return true;
+    }
+
+    // PyErr_Print();
+    PyErr_Clear();
+    return false;
 }
 
 static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args, PyObject *kwargs)
 {
-    PyObject* returnvalue = (self->cppobjectpointer)->call();
-    Py_INCREF( returnvalue );
-    return returnvalue;
+    self->currentline += 1;
+    // fprintf( stderr, "call linecache.size %lu linecount %llu currentline %llu\n", self->linecache->size(), self->linecount, self->currentline );
+
+    if( self->currentline < static_cast<long long int>( self->linecache->size() ) ) {
+        Py_INCREF( (*self->linecache)[self->currentline] );
+        return (*self->linecache)[self->currentline];
+    }
+    else
+    {
+        if( !PyFastFile__getline( self ) )
+        {
+            // fprintf( stderr, "Raising StopIteration\n" );
+            Py_INCREF( self->emtpycacheobject );
+            return self->emtpycacheobject;
+        }
+    }
+    // std::ostringstream contents; for( auto value : *self->linecache ) contents << PyUnicode_AsUTF8( value ); fprintf( stderr, "call contents %s**\n**linecache.size %lu linecount %llu self->currentline %llu (%p)\n", contents.str().c_str(), self->linecache->size(), self->linecount, self->currentline, (*self->linecache)[self->currentline] );
+    Py_INCREF( (*self->linecache)[self->currentline] );
+    return (*self->linecache)[self->currentline];
 }
 
 static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
@@ -63,41 +183,83 @@ static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 
 static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
-    if( !( (self->cppobjectpointer)->next() ) ) {
-        // PyErr_Print();
-        // PyErr_Clear();
-        // PyErr_SetNone( PyExc_StopIteration );
-        return NULL;
+    self->currentline = -1;
+    // fprintf( stderr, "next linecache.size %lu linecount %llu currentline %llu\n", self->linecache->size(), self->linecount, self->currentline );
+
+    if( self->linecache->   size() ) {
+        Py_DECREF( (*self->linecache)[0] );
+        self->linecache->pop_front();
+
+        PyObject* returnvalue = PyFastFile_tp_call( self, NULL, NULL );
+        return returnvalue;
     }
 
-    PyObject* returnvalue = (self->cppobjectpointer)->call();
-    Py_INCREF( returnvalue );
-    return returnvalue;
+    if( PyFastFile__getline( self ) ) {
+        PyObject* returnvalue = PyFastFile_tp_call( self, NULL, NULL );
+        return returnvalue;
+    }
+    return NULL;
 }
 
 static PyObject* PyFastFile_getlines(PyFastFile* self, PyObject* args)
 {
-    std::string returnvalue;
     unsigned int linestoget;
 
     if( !PyArg_ParseTuple( args, "i", &linestoget ) ) {
         return NULL;
     }
+
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-    returnvalue = (self->cppobjectpointer)->getlines( linestoget );
+    std::stringstream stream;
+    unsigned int current = 1;
+    const char* cppline;
+
+    for( PyObject* line : *self->linecache ) {
+        ++current;
+        cppline = PyUnicode_AsUTF8( line );
+        stream << std::string{cppline};
+
+        if( linestoget < current ) {
+            stream.seekp( -1, std::ios_base::end );
+            stream << " ";
+            break;
+        }
+    }
+
+    std::string returnvalue = stream.str();
     return PyUnicode_DecodeUTF8( returnvalue.c_str(), returnvalue.size(), "replace" );
 }
 
 static PyObject* PyFastFile_resetlines(PyFastFile* self, PyObject* args)
 {
-    (self->cppobjectpointer)->resetlines( 0 );
+    self->currentline = 0;
     Py_INCREF( Py_None );
     return Py_None;
 }
 
 static PyObject* PyFastFile_close(PyFastFile* self, PyObject* args)
 {
-    (self->cppobjectpointer)->close();
+    // fprintf( stderr, "FastFile closing the file linecount %llu currentline %llu\n", self->linecount, self->currentline );
+    PyObject* closefunction = PyObject_GetAttrString( self->openfile, "close" );
+
+    if( closefunction == NULL ) {
+        std::cerr << "ERROR: FastFile failed get the close file function for '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return NULL;
+    }
+
+    PyObject* closefileresult = PyObject_CallObject( closefunction, NULL );
+    Py_DECREF( closefunction );
+
+    if( closefileresult == NULL ) {
+        std::cerr << "ERROR: FastFile failed close open file '"
+                << self->filepath << "')!" << std::endl;
+        PyErr_Print();
+        return NULL;
+    }
+    Py_DECREF( closefileresult );
+
     Py_INCREF( Py_None );
     return Py_None;
 }
