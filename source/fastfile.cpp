@@ -156,6 +156,7 @@ struct FastFile {
         }
 
         // PyErr_Print();
+        PyErr_Clear();
         return false;
     }
 

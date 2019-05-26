@@ -65,7 +65,7 @@ static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
     if( !( (self->cppobjectpointer)->next() ) ) {
         // PyErr_Print();
-        PyErr_Clear();
+        // PyErr_Clear();
         // PyErr_SetNone( PyExc_StopIteration );
         return NULL;
     }
