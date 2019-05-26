@@ -48,11 +48,11 @@ static void PyFastFile_dealloc(PyFastFile* self)
     Py_TYPE(self)->tp_free( (PyObject*) self );
 }
 
-static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args, PyObject *kwargs) {
-    PyObject* retvalue = (self->cppobjectpointer)->call();
-
-    Py_XINCREF( retvalue );
-    return retvalue;
+static PyObject* PyFastFile_tp_call(PyFastFile* self, PyObject* args, PyObject *kwargs)
+{
+    PyObject* returnvalue = (self->cppobjectpointer)->call();
+    Py_INCREF( returnvalue );
+    return returnvalue;
 }
 
 static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
@@ -61,32 +61,30 @@ static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
     return (PyObject*) self;
 }
 
-static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args) {
-    bool next = (self->cppobjectpointer)->next();
-
-    // printf( "PyFastFile_iternext: %d\n", next );
-    if( !( next ) )
-    {
+static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
+{
+    if( !( (self->cppobjectpointer)->next() ) ) {
+        // PyErr_Clear();
         PyErr_SetNone( PyExc_StopIteration );
         return NULL;
     }
 
-    PyObject* retval = (self->cppobjectpointer)->call();
-    Py_XINCREF( retval );
-    return retval;
+    PyObject* returnvalue = (self->cppobjectpointer)->call();
+    Py_INCREF( returnvalue );
+    return returnvalue;
 }
 
 static PyObject* PyFastFile_getlines(PyFastFile* self, PyObject* args)
 {
-    std::string retval;
+    std::string returnvalue;
     unsigned int linestoget;
 
     if( !PyArg_ParseTuple( args, "i", &linestoget ) ) {
         return NULL;
     }
     // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
-    retval = (self->cppobjectpointer)->getlines( linestoget );
-    return PyUnicode_DecodeUTF8( retval.c_str(), retval.size(), "replace" );
+    returnvalue = (self->cppobjectpointer)->getlines( linestoget );
+    return PyUnicode_DecodeUTF8( returnvalue.c_str(), returnvalue.size(), "replace" );
 }
 
 static PyObject* PyFastFile_resetlines(PyFastFile* self, PyObject* args)
