@@ -22,6 +22,7 @@ struct FastFile {
     PyObject* openfile;
     PyObject* fileiterator;
 
+    // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
     FastFile(const char* filepath) : filepath(filepath), linecount(0), currentline(0)
     {
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
@@ -29,9 +30,17 @@ struct FastFile {
         iomodule = PyImport_ImportModule( "io" );
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
 
+        if( emtpycacheobject == NULL ) {
+            std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
+                    << filepath << "')!" << std::endl;
+            PyErr_Print();
+            return;
+        }
+
         if( iomodule == NULL ) {
             std::cerr << "ERROR: FastFile failed to import the io module (and open the file '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
         PyObject* openfunction = PyObject_GetAttrString( iomodule, "open" );
@@ -39,6 +48,7 @@ struct FastFile {
         if( openfunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module open function (and open the file '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
         openfile = PyObject_CallFunction( openfunction, "s", filepath, "s", "r", "i", -1, "s", "UTF8", "s", "replace" );
@@ -48,6 +58,7 @@ struct FastFile {
         if( iterfunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator function (and open the file '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
         PyObject* openfileresult = PyObject_CallObject( iterfunction, NULL );
@@ -56,6 +67,7 @@ struct FastFile {
         if( openfileresult == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
         fileiterator = PyObject_GetAttrString( openfile, "__next__" );
@@ -64,6 +76,7 @@ struct FastFile {
         if( fileiterator == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
     }
@@ -88,6 +101,7 @@ struct FastFile {
         if( closefunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the close file function for '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
 
@@ -97,6 +111,7 @@ struct FastFile {
         if( closefileresult == NULL ) {
             std::cerr << "ERROR: FastFile failed close open file '"
                     << filepath << "')!" << std::endl;
+            PyErr_Print();
             return;
         }
 
@@ -130,8 +145,6 @@ struct FastFile {
     // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
     bool _getline() {
         PyObject* readline = PyObject_CallObject( fileiterator, NULL );
-        // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
-        // PyErr_Print();
 
         if( readline != NULL ) {
             linecount += 1;
@@ -141,6 +154,8 @@ struct FastFile {
             // fprintf( stderr, "_getline readline '%d'\n", readline ); fflush( stderr );
             return true;
         }
+
+        // PyErr_Print();
         return false;
     }
 
