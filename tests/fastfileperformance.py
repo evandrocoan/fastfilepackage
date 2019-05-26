@@ -1,3 +1,4 @@
+import io
 import time
 import datetime
 import fastfilepackage
@@ -6,10 +7,10 @@ import fastfilepackage
 testfile = './myfile.log'
 
 timenow = time.time()
-with open( testfile, 'r', errors='replace' ) as myfile:
-    for item in myfile:
-        if None:
-            var = item
+iterable = io.open( testfile, 'r' )
+for item in iterable:
+    if None:
+        var = item
 
 python_time = time.time() - timenow
 timedifference = datetime.timedelta( seconds=python_time )
