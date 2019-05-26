@@ -65,18 +65,44 @@ Cygwin.
 ```
 sudo apt-get install python3-dbg
 apt-cyg install libcrypt-devel python36-devel python36-debuginfo python3-debuginfo python3-cython-debuginfo
-CFLAGS="-O0 -g -ggdb -fstack-protector-all" CXXFLAGS="-O0 -g -ggdb -fstack-protector-all" /bin/pip3 install .
+CFLAGS="-O0 -g -ggdb -fstack-protector-all" CXXFLAGS="-O0 -g -ggdb -fstack-protector-all" /usr/bin/pip3 install .
 
 cd modulename/source
-gdb --args /bin/python3 -m modulename.__init__ -p ../tests/light/
+gdb --args /usr/bin/python3 -m modulename.__init__ -p ../tests/light/
 python3 -m pdb -m modulename.__init__ -p ../tests/light/
 
 cd /usr/bin
-/bin/python3 -u -m trace -t modulename-script.py -p ../tests/light/
+/usr/bin/python3 -u -m trace -t modulename-script.py -p ../tests/light/
+```
+1. https://github.com/spiside/pdb-tutorial
+1. https://docs.python.org/3.7/library/pdb.html
+1. https://docs.python.org/3.7/library/trace.html
+1. https://stackoverflow.com/questions/1629685/when-and-how-to-use-gccs-stack-protection-feature
+1. https://stackoverflow.com/questions/25678978/how-to-debug-python-script-that-is-crashing-python
+1. https://stackoverflow.com/questions/46265835/how-to-debug-a-python-module-run-with-python-m-from-the-command-line
 
-# to generate core dumps instead of stack traces
+To debug `refcounts` leaks:
+1. CPython compiled with ./configure --with-pydebug
+1. Runtime compiled with C assertion:
+   crash (kill itself with SIGABRT signal) if a C assertion fails (assert(...);).
+1. Use the debug hooks on memory allocators by default,
+   as PYTHONDEBUG=debug environment variable:
+   detect memory under- and overflow and
+   misuse of memory allocators.
+1. Compiled without compiler optimizations (`-Og` or even `-O0`) to be usable with a debugger like `gdb`:
+   `python-gdb.py` should work perfectly.
+   However,
+   the regular runtime is unusable with `gdb` since most variables and
+   function arguments are stored in registers,
+   and so `gdb` fails with the `<optimized out>` message.
+1. https://pythoncapi.readthedocs.io/runtimes.html#debug-build
+1. https://stackoverflow.com/questions/8650972/how-do-i-debug-refcounts-in-a-python-c-extension-the-easiest-way
+
+To generate core dumps instead of stack traces
+```
 export CYGWIN="$CYGWIN error_start=dumper -d %1 %2"
 ```
+1. https://stackoverflow.com/questions/320001/using-a-stackdump-from-cygwin-executable
 
 If you see this when running `gdb`:
 ```
@@ -89,14 +115,6 @@ warning: the debug information found in "/usr/lib/debug//usr/bin/cygwin1.dbg" do
 [New Thread 8980.0x21c4]
 ```
 Run the command `rm /usr/lib/debug//usr/bin/cygwin1.dbg`
-
-1. https://github.com/spiside/pdb-tutorial
-1. https://docs.python.org/3.7/library/pdb.html
-1. https://docs.python.org/3.7/library/trace.html
-1. https://stackoverflow.com/questions/320001/using-a-stackdump-from-cygwin-executable
-1. https://stackoverflow.com/questions/1629685/when-and-how-to-use-gccs-stack-protection-feature
-1. https://stackoverflow.com/questions/25678978/how-to-debug-python-script-that-is-crashing-python
-1. https://stackoverflow.com/questions/46265835/how-to-debug-a-python-module-run-with-python-m-from-the-command-line
 1. http://cygwin.1069669.n5.nabble.com/Debugging-with-GDB-td94421.html
 
 
