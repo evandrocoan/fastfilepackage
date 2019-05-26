@@ -27,7 +27,9 @@ struct FastFile {
     {
         // fprintf( stderr, "FastFile Constructor with filepath=%s\n", filepath );
         resetlines();
-        iomodule = PyImport_ImportModule( "io" );
+
+        // https://stackoverflow.com/questions/47054623/using-python3-c-api-to-add-to-builtins
+        iomodule = PyImport_ImportModule( "builtins" );
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
 
         if( emtpycacheobject == NULL ) {
@@ -154,6 +156,7 @@ struct FastFile {
             return true;
         }
 
+        // Fix StopIteration being raised multiple times because _getlines is called multiple times
         // PyErr_Print();
         PyErr_Clear();
         return false;
