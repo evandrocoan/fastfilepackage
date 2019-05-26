@@ -53,7 +53,7 @@ struct FastFile {
         }
         openfile = PyObject_CallFunction( openfunction, "s", filepath, "s", "r", "i", -1, "s", "UTF8", "s", "replace" );
         PyObject* iterfunction = PyObject_GetAttrString( openfile, "__iter__" );
-        Py_XDECREF( openfunction );
+        Py_DECREF( openfunction );
 
         if( iterfunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator function (and open the file '"
@@ -62,7 +62,7 @@ struct FastFile {
             return;
         }
         PyObject* openfileresult = PyObject_CallObject( iterfunction, NULL );
-        Py_XDECREF( iterfunction );
+        Py_DECREF( iterfunction );
 
         if( openfileresult == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
@@ -71,7 +71,7 @@ struct FastFile {
             return;
         }
         fileiterator = PyObject_GetAttrString( openfile, "__next__" );
-        Py_XDECREF( openfileresult );
+        Py_DECREF( openfileresult );
 
         if( fileiterator == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
@@ -90,7 +90,7 @@ struct FastFile {
         Py_XDECREF( fileiterator );
 
         for( PyObject* pyobject : linecache ) {
-            Py_XDECREF( pyobject );
+            Py_DECREF( pyobject );
         }
     }
 
@@ -106,7 +106,7 @@ struct FastFile {
         }
 
         PyObject* closefileresult = PyObject_CallObject( closefunction, NULL );
-        Py_XDECREF( closefunction );
+        Py_DECREF( closefunction );
 
         if( closefileresult == NULL ) {
             std::cerr << "ERROR: FastFile failed close open file '"
@@ -115,7 +115,7 @@ struct FastFile {
             return;
         }
 
-        Py_XDECREF( closefileresult );
+        Py_DECREF( closefileresult );
     }
 
     void resetlines(int linetoreset=-1) {
@@ -163,7 +163,7 @@ struct FastFile {
         resetlines();
 
         if( linecache.size() ) {
-            Py_XDECREF( linecache[0] );
+            Py_DECREF( linecache[0] );
             linecache.pop_front();
             return true;
         }
