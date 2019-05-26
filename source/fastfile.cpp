@@ -41,7 +41,7 @@ struct FastFile {
                     << filepath << "')!" << std::endl;
             return;
         }
-        openfile = PyObject_CallFunction( openfunction, "s", filepath );
+        openfile = PyObject_CallFunction( openfunction, "s", filepath, "s", "r", "i", -1, "s", "UTF8", "s", "replace" );
         PyObject* iterfunction = PyObject_GetAttrString( openfile, "__iter__" );
         Py_XDECREF( openfunction );
 
