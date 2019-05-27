@@ -39,9 +39,13 @@
 /**
  * This is to view internal program data while execution. Default value: 0
  *
- *  0  - Disables this feature.
- *  1  - Basic debugging with time stamp.
- *  2  - Basic debugging without time stamp.
+ * A value like 127 binary(111111) enables all masked debugging levels.
+ *
+ *  0     - Disables this feature.
+ *  1     - Error or very important messages.
+ *  4     - Comment messages inside functions calls
+ *  8     - High called functions, i.e., create very big massive text output
+ *  1024  - Disable debugging with time stamp.
  */
 #if !defined(FASTFILE_DEBUGGER_INT_DEBUG_LEVEL)
   #define FASTFILE_DEBUGGER_INT_DEBUG_LEVEL 0
@@ -49,25 +53,12 @@
 
 
 #define DEBUG_LEVEL_DISABLED_DEBUG     0
-#define DEBUG_LEVEL_WITH_TIME_STAMP    1
-#define DEBUG_LEVEL_WITHOUT_TIME_STAMP 2
+#define DEBUG_LEVEL_WITHOUT_TIME_STAMP 1024
 
 /**
  * Control all program debugging.
  */
 #if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL > DEBUG_LEVEL_DISABLED_DEBUG
-
-  /**
-   * A value like 127 binary(111111) enables all masked debugging levels.
-   *
-   * 1  - Error or very important messages.
-   * 2  - Function entrances by `...`
-   * 4  - Comment messages inside functions calls
-   * 8  - High called functions, i.e., create very big massive text output
-   * 16 - Window movement, zoom, etc.
-   */
-  extern int _fastfile_debugger_int_debug_level;
-
   #define DEBUG
   #include <iostream>
   #include <chrono>
@@ -81,7 +72,9 @@
   extern std::clock_t _debugger_current_saved_c_time;
   extern std::chrono::time_point< std::chrono::high_resolution_clock > _debugger_current_saved_chrono_time;
 
-  #if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL & DEBUG_LEVEL_WITH_TIME_STAMP
+  #if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL & DEBUG_LEVEL_WITHOUT_TIME_STAMP
+    #define _DEBUGGER_TIME_STAMP_HEADER
+  #else
     #define _DEBUGGER_TIME_STAMP_HEADER \
       auto duration = chrono_clock_now.time_since_epoch(); \
       /* typedef std::chrono::duration< int, std::ratio_multiply< std::chrono::hours::period, std::ratio< 21 > >::type > Days; */ \
@@ -105,8 +98,6 @@
           std::chrono::duration<double, std::milli>(chrono_clock_now-_debugger_current_saved_chrono_time).count() \
           /* (1000.0 * (ctime_clock_now - _debugger_current_saved_c_time)) / CLOCKS_PER_SEC */ \
       );
-  #else
-    #define _DEBUGGER_TIME_STAMP_HEADER
   #endif
 
   // https://stackoverflow.com/questions/1706346/file-macro-manipulation-handling-at-compile-time/
@@ -128,7 +119,7 @@
 
   /**
    * Print like function for logging putting a new line at the end of string. See the variables
-   * '_fastfile_debugger_int_debug_level' for the available levels.
+   * 'FASTFILE_DEBUGGER_INT_DEBUG_LEVEL' for the available levels.
    *
    * On this function only, a time stamp on scientific notation as `d.dde+ddd d.ddde+ddd` will be
    * used. These values mean the `CPU time used` in milliseconds and the `Wall clock time passed`
@@ -140,7 +131,7 @@
   #define LOG( level, ... ) \
   do \
   { \
-    if( level & _fastfile_debugger_int_debug_level ) \
+    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
       std::clock_t ctime_clock_now = std::clock(); \
       auto chrono_clock_now = std::chrono::high_resolution_clock::now(); \
@@ -159,7 +150,7 @@
   #define LOGLN( level, ... ) \
   do \
   { \
-    if( level & _fastfile_debugger_int_debug_level ) \
+    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
       std::clock_t ctime_clock_now = std::clock(); \
       auto chrono_clock_now = std::chrono::high_resolution_clock::now(); \
@@ -178,7 +169,7 @@
   #define LOGLC( level, ... ) \
   do \
   { \
-    if( level & _fastfile_debugger_int_debug_level ) \
+    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
       std::cout << tfm::format( __VA_ARGS__ ) << std::flush; \
     } \
@@ -191,7 +182,7 @@
   #define LOGCD( level, code ) \
   do \
   { \
-    if( level & _fastfile_debugger_int_debug_level ) \
+    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
       code; \
     } \
@@ -204,7 +195,7 @@
   #define PRINT( level, ... ) \
   do \
   { \
-    if( level & _fastfile_debugger_int_debug_level ) \
+    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
       std::cout << tfm::format( __VA_ARGS__ ) << std::endl; \
     } \
@@ -217,7 +208,7 @@
   #define PRINTLN( level, ... ) \
   do \
   { \
-    if( level & _fastfile_debugger_int_debug_level ) \
+    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
       std::cout << tfm::format( __VA_ARGS__ ) << std::flush; \
     } \

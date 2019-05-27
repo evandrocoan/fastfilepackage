@@ -30,9 +30,5 @@
   // initialize time tracking `extern` variables shared across all source files, do not change them
   std::clock_t _debugger_current_saved_c_time = std::clock();
   std::chrono::time_point<std::chrono::high_resolution_clock> _debugger_current_saved_chrono_time = std::chrono::high_resolution_clock::now();
-
-  // Default debug level, if not defined on any other file
-  // int _fastfile_debugger_int_debug_level = 127-8-16;
-  // int _fastfile_debugger_int_debug_level = 127;
 #endif
 
