@@ -29,30 +29,6 @@ Or install it with:
 pip3 install fastfilepackage
 ```
 
-# Enable debug mode
-
-The default debug level is `0` where not debugging message code is generated into the final binary.
-Guaranteeing maximum performance.
-If you would like to compile a binary with debug messages,
-define the environment variable `FASTFILE_DEBUGGER_INT_DEBUG_LEVEL` before running the installer.
-You can see the debugging level available on the file [source/debugger.h](source/debugger.h):
-```
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install .
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install -e .
-
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py install
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py develop
-```
-
-If you are on Windows,
-run it like this:
-```
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install .
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install -e .
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py install
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py develop
-```
-
 
 ## Debugging
 
@@ -79,6 +55,31 @@ cd /usr/bin
 1. https://stackoverflow.com/questions/1629685/when-and-how-to-use-gccs-stack-protection-feature
 1. https://stackoverflow.com/questions/25678978/how-to-debug-python-script-that-is-crashing-python
 1. https://stackoverflow.com/questions/46265835/how-to-debug-a-python-module-run-with-python-m-from-the-command-line
+
+
+## Enable debug mode
+
+The default debug level is `0` where no debugging message code is generated into the final binary.
+Guaranteeing maximum performance.
+If you would like to compile a binary with debug messages,
+define the environment variable `FASTFILE_DEBUGGER_INT_DEBUG_LEVEL` before running the installer.
+You can see the debugging level available on the file [source/debugger.h](source/debugger.h):
+```
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install .
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install -e .
+
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py install
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py develop
+```
+
+If you are on Windows,
+run it like this:
+```
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install .
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install -e .
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py install
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py develop
+```
 
 To debug `refcounts` leaks:
 1. CPython compiled with ./configure --with-pydebug
