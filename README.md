@@ -29,29 +29,28 @@ Or install it with:
 pip3 install fastfilepackage
 ```
 
-# Performance improvements
+# Enable debug mode
 
-You can have `70%` of increment if you use a Posix complaint system as Linux or Cygwin.
-
-If you would like to disable this,
-just define `USE_STD_GETLINE=1` macro by calling the installer like this,
-if you are on Linux or Cygwin/Posix:
+The default debug level is `0` where not debugging message code is generated into the final binary.
+Guaranteeing maximum performance.
+If you would like to compile a binary with debug messages,
+define the environment variable `FASTFILE_DEBUGGER_INT_DEBUG_LEVEL` before running the installer.
+You can see the debugging level available on the file [source/debugger.h](source/debugger.h):
 ```
-MY_ENVIRONMENT_VARIABLE=1 pip install .
-MY_ENVIRONMENT_VARIABLE=1 pip install -e .
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install .
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install -e .
 
-MY_ENVIRONMENT_VARIABLE=1 python setup.py install
-MY_ENVIRONMENT_VARIABLE=1 python setup.py develop
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py install
+FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py develop
 ```
 
-But,
-if you are on Windows,
+If you are on Windows,
 run it like this:
 ```
-set "MY_ENVIRONMENT_VARIABLE=1" && pip install .
-set "MY_ENVIRONMENT_VARIABLE=1" && pip install -e .
-set "MY_ENVIRONMENT_VARIABLE=1" && python setup.py install
-set "MY_ENVIRONMENT_VARIABLE=1" && python setup.py develop
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install .
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install -e .
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py install
+set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py develop
 ```
 
 

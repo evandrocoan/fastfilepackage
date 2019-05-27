@@ -29,6 +29,7 @@ from setuptools import setup, Extension
 
 # https://bugs.python.org/issue35893
 from distutils.command import build_ext
+from distutils.sysconfig import get_config_vars
 
 def get_export_symbols(self, ext):
     parts = ext.name.split(".")
@@ -61,16 +62,29 @@ except Exception as error:
 
 define_macros = []
 
-# USE_STD_GETLINE=1 pip3 install .
-# set "USE_STD_GETLINE=1" && pip3 install .
+# FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip3 install .
+# set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip3 install .
 # https://stackoverflow.com/questions/677577/distutils-how-to-pass-a-user-defined-parameter-to-setup-py
-environment_variable_name = 'USE_STD_GETLINE'
-environment_variable_value = os.environ.get( environment_variable_name, None )
+debug_variable_name = 'FASTFILE_DEBUGGER_INT_DEBUG_LEVEL'
+debug_variable_value = os.environ.get( debug_variable_name, None )
 
-if environment_variable_value is not None:
+# https://stackoverflow.com/questions/17730788/search-and-replace-with-whole-word-only-option
+# https://stackoverflow.com/questions/8106258/cc1plus-warning-command-line-option-wstrict-prototypes-is-valid-for-ada-c-o
+def remove_flags():
+    cfg_vars = get_config_vars()
+
+    for key, value in cfg_vars.items():
+        if type(value) == str:
+            value = re.sub( r'\-g[^ ]*\b', r'', value )
+            # value = re.sub( r'\-O2\b', r'', value )
+            # value = re.sub( r'\-O3\b', r'', value )
+            cfg_vars[key] = value
+
+# remove_flags()
+if debug_variable_value is not None:
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % (
-            environment_variable_name, environment_variable_value ) )
-    define_macros.append( (environment_variable_name, environment_variable_value) )
+            debug_variable_name, debug_variable_value ) )
+    define_macros.append( (debug_variable_name, debug_variable_value) )
 
 setup(
         name = 'fastfilepackage',
@@ -86,6 +100,7 @@ setup(
             Extension(
                 name = 'fastfilepackage',
                 sources = [
+                    'source/debugger.cpp',
                     'source/fastfile.cpp',
                     'source/fastfilewrapper.cpp'
                 ],

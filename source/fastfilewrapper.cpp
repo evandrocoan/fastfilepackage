@@ -2,6 +2,15 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+// https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
+// https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
+#if defined(FASTFILE_DEBUGGER_INT_DEBUG_LEVEL)
+    int _fastfile_debugger_int_debug_level = FASTFILE_DEBUGGER_INT_DEBUG_LEVEL;
+#else
+    int _fastfile_debugger_int_debug_level = 0;
+    #define FASTFILE_DEBUGGER_INT_DEBUG_LEVEL 0
+#endif
+
 #include "version.h"
 #include "fastfile.cpp"
 
