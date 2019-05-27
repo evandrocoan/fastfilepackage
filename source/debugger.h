@@ -133,12 +133,12 @@
   { \
     if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
-      std::clock_t ctime_clock_now = std::clock(); \
+      /* std::clock_t ctime_clock_now = std::clock(); */ \
       auto chrono_clock_now = std::chrono::high_resolution_clock::now(); \
       _DEBUGGER_TIME_STAMP_HEADER \
       _DEBUGGER_TIME_FILE_PATH_HEADER \
       std::cout << tfm::format( __VA_ARGS__ ) << std::endl; \
-      _debugger_current_saved_c_time = ctime_clock_now; \
+      /* _debugger_current_saved_c_time = ctime_clock_now; */ \
       _debugger_current_saved_chrono_time = chrono_clock_now; \
     } \
   } \
@@ -152,12 +152,12 @@
   { \
     if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
     { \
-      std::clock_t ctime_clock_now = std::clock(); \
+      /* std::clock_t ctime_clock_now = std::clock(); */ \
       auto chrono_clock_now = std::chrono::high_resolution_clock::now(); \
       _DEBUGGER_TIME_STAMP_HEADER \
       _DEBUGGER_TIME_FILE_PATH_HEADER \
       std::cout << tfm::format( __VA_ARGS__ ); \
-      _debugger_current_saved_c_time = ctime_clock_now; \
+      /* _debugger_current_saved_c_time = ctime_clock_now; */ \
       _debugger_current_saved_chrono_time = chrono_clock_now; \
     } \
   } \
