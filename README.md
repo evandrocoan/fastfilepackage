@@ -10,11 +10,12 @@ See these files for an usage example:
 
 ## Installation
 
-Requires Python 3,
-pip3, distutils and
-C++ 11 compiler installed:
+Requires `Python 3` ,
+`pip3`, `distutils`, `setuptools`, `wheel` and
+a `C++ 11` compiler installed:
 ```
-sudo apt-get install build-essential g++ python3-dev
+sudo apt-get install build-essential g++ python3-dev python3 python3-pip
+pip3 install setuptools wheel
 ```
 
 Then, you can clone this repository with:
@@ -82,12 +83,12 @@ set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py develop
 ```
 
 To debug `refcounts` leaks:
-1. CPython compiled with ./configure --with-pydebug
+1. CPython compiled with `./configure --with-pydebug`
 1. Runtime compiled with C assertion:
-   crash (kill itself with SIGABRT signal) if a C assertion fails (assert(...);).
+   crash (kill itself with SIGABRT signal) if a C assertion fails (`assert(...);`).
 1. Use the debug hooks on memory allocators by default,
-   as PYTHONDEBUG=debug environment variable:
-   detect memory under- and overflow and
+   as `PYTHONDEBUG=debug` environment variable:
+   detect memory under and overflow and
    misuse of memory allocators.
 1. Compiled without compiler optimizations (`-Og` or even `-O0`) to be usable with a debugger like `gdb`:
    `python-gdb.py` should work perfectly.
@@ -96,9 +97,10 @@ To debug `refcounts` leaks:
    function arguments are stored in registers,
    and so `gdb` fails with the `<optimized out>` message.
 1. https://pythoncapi.readthedocs.io/runtimes.html#debug-build
+1. https://stackoverflow.com/questions/40121749/why-gcc-og-doesnt-generate-source-code-line-mapping
 1. https://stackoverflow.com/questions/8650972/how-do-i-debug-refcounts-in-a-python-c-extension-the-easiest-way
 
-To generate core dumps instead of stack traces
+To generate core dumps instead of stack traces on `Cygwin`
 ```
 export CYGWIN="$CYGWIN error_start=dumper -d %1 %2"
 ```
