@@ -68,6 +68,7 @@ struct FastFile
             linecount += 1;
             readline[charsread-1] = '\0';
 
+            // std::string* my = new std::string{""};
             std::string* my = new std::string{readline};
             linecache.push_back( my );
             return true;

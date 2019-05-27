@@ -78,6 +78,7 @@ struct FastFile
             linecount += 1;
             // fileifstream.getline( readline, linebuffersize );
             // linecache.push_back( new std::string{readline} );
+
             std::string* line = new std::string{};
             std::getline( fileifstream, *line );
             linecache.push_back( line );
