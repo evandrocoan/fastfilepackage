@@ -61,6 +61,7 @@ except Exception as error:
     sys.stderr.write( "Warning: Could not open '%s' due %s" % ( filepath, error ) )
 
 define_macros = []
+extra_compile_args = []
 
 # FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip3 install .
 # set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip3 install .
@@ -75,16 +76,18 @@ def remove_flags():
 
     for key, value in cfg_vars.items():
         if type(value) == str:
-            value = re.sub( r'\-g[^ ]*\b', r'', value )
-            # value = re.sub( r'\-O2\b', r'', value )
-            # value = re.sub( r'\-O3\b', r'', value )
+            # print('key %-20s' % key, 'value', value)
+            # value = re.sub( r'\-g[^ ]*\b', r'', value )
+            value = re.sub( r'\-O2\b', r'', value )
+            value = re.sub( r'\-O3\b', r'', value )
             cfg_vars[key] = value
 
-# remove_flags()
 if debug_variable_value is not None:
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % (
             debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
+    remove_flags()
+    extra_compile_args.append( '-O0' )
 
 setup(
         name = 'fastfilepackage',
@@ -104,8 +107,9 @@ setup(
                     'source/fastfile.cpp',
                     'source/fastfilewrapper.cpp'
                 ],
-                include_dirs = ['source'],
+                include_dirs = [ 'source' ],
                 define_macros = define_macros,
+                extra_compile_args = extra_compile_args,
             )
         ],
 
