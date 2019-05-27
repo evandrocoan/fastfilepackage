@@ -104,7 +104,7 @@ struct FastFile
     }
 };
 
-// g++ -o main.exe getlineperformance.cpp -g -ggdb --std=c++11 && time ./main.exe
+// g++ -o main.exe getline_c_performance.cpp -g -ggdb --std=c++11 && time ./main.exe
 int main(int argc, char const *argv[])
 {
     FastFile myfile{"./myfile.log"};
