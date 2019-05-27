@@ -28,7 +28,7 @@ import codecs
 from setuptools import setup, Extension
 
 # https://bugs.python.org/issue35893
-from distutils.command import build_ext
+from distutils.command.build_ext import build_ext
 from distutils.sysconfig import get_config_vars
 
 def get_export_symbols(self, ext):
@@ -38,7 +38,8 @@ def get_export_symbols(self, ext):
     else:
         initfunc_name = "PyInit_" + parts[-1]
 
-build_ext.build_ext.get_export_symbols = get_export_symbols
+build_ext.get_export_symbols = get_export_symbols
+
 
 try:
     # https://stackoverflow.com/questions/30700166/python-open-file-error
@@ -82,12 +83,37 @@ def remove_flags():
             value = re.sub( r'\-O3\b', r'', value )
             cfg_vars[key] = value
 
+class build_ext_compiler_check(build_ext):
+    def build_extensions(self):
+        compiler = self.compiler.compiler_type
+        # print('\n\ncompiler', compiler, 'debug_variable_value', debug_variable_value)
+        if not 'msvc' in compiler:
+            if debug_variable_value is not None:
+                for extension in self.extensions:
+                    if extension == myextension:
+                        extension.extra_compile_args.append( '-O0' )
+                        extension.extra_compile_args.append( '-std=c++11' )
+        super().build_extensions()
+
 if debug_variable_value is not None:
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % (
             debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
     remove_flags()
-    extra_compile_args.append( '-O0' )
+
+# https://docs.python.org/3.7/distutils/apiref.html#distutils.core.Extension
+# https://stackoverflow.com/questions/30985862/how-to-identify-compiler-before-defining-cython-extensions
+# https://stackoverflow.com/questions/10924885/is-it-possible-to-include-subdirectories-using-dist-utils-setup-py-as-part-of
+myextension = Extension(
+    name = 'fastfilepackage',
+    sources = [
+        'source/debugger.cpp',
+        'source/fastfile.cpp',
+        'source/fastfilewrapper.cpp'
+    ],
+    include_dirs = [ 'source' ],
+    define_macros = define_macros,
+)
 
 setup(
         name = 'fastfilepackage',
@@ -96,28 +122,11 @@ setup(
         author = 'Evandro Coan',
         license = "LGPLv2.1",
         url = 'https://github.com/evandrocoan/fastfilepackage',
-
-        # https://docs.python.org/3.7/distutils/apiref.html#distutils.core.Extension
-        # https://stackoverflow.com/questions/10924885/is-it-possible-to-include-subdirectories-using-dist-utils-setup-py-as-part-of
-        ext_modules= [
-            Extension(
-                name = 'fastfilepackage',
-                sources = [
-                    'source/debugger.cpp',
-                    'source/fastfile.cpp',
-                    'source/fastfilewrapper.cpp'
-                ],
-                include_dirs = [ 'source' ],
-                define_macros = define_macros,
-                extra_compile_args = extra_compile_args,
-            )
-        ],
+        ext_modules= [ myextension ],
 
         # https://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute/
-        package_data = {
-                '': [ '**.txt', '**.md', '**.py', '**.h', '**.hpp', '**.c', '**.cpp' ],
-            },
-
+        package_data = { '': [ '**.txt', '**.md', '**.py', '**.h', '**.hpp', '**.c', '**.cpp' ], },
+        cmdclass={ 'build_ext': build_ext_compiler_check },
         long_description = readme_contents,
         long_description_content_type='text/markdown',
         classifiers=[
