@@ -128,18 +128,21 @@ struct FastFile {
 
     std::string getlines(unsigned int linestoget) {
         std::stringstream stream;
-        unsigned int current = 1;
-        const char* cppline;
 
-        for( PyObject* line : linecache ) {
-            ++current;
-            cppline = PyUnicode_AsUTF8( line );
-            stream << std::string{cppline};
+        if( linestoget ) {
+            const char* cppline;
+            unsigned int current = 1;
 
-            if( linestoget < current ) {
-                stream.seekp( -1, std::ios_base::end );
-                stream << " ";
-                break;
+            for( PyObject* line : linecache ) {
+                ++current;
+                cppline = PyUnicode_AsUTF8( line );
+                stream << std::string{cppline};
+
+                if( linestoget < current ) {
+                    stream.seekp( -1, std::ios_base::end );
+                    stream << " ";
+                    break;
+                }
             }
         }
         return stream.str();
