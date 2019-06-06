@@ -37,14 +37,14 @@ struct FastFile {
         if( emtpycacheobject == NULL ) {
             std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
 
         if( iomodule == NULL ) {
             std::cerr << "ERROR: FastFile failed to import the io module (and open the file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
         PyObject* openfunction = PyObject_GetAttrString( iomodule, "open" );
@@ -52,17 +52,17 @@ struct FastFile {
         if( openfunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module open function (and open the file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
-        openfile = PyObject_CallFunction( openfunction, "s", filepath, "s", "r", "i", -1, "s", "UTF8", "s", "replace" );
+        openfile = PyObject_CallFunction( openfunction, "s", filepath, "s", "r", "i", -1, "s", "UTF8", "s", "ignore" );
         PyObject* iterfunction = PyObject_GetAttrString( openfile, "__iter__" );
         Py_DECREF( openfunction );
 
         if( iterfunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator function (and open the file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
         PyObject* openfileresult = PyObject_CallObject( iterfunction, NULL );
@@ -71,7 +71,7 @@ struct FastFile {
         if( openfileresult == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
         fileiterator = PyObject_GetAttrString( openfile, "__next__" );
@@ -80,7 +80,7 @@ struct FastFile {
         if( fileiterator == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
     }
@@ -105,7 +105,7 @@ struct FastFile {
         if( closefunction == NULL ) {
             std::cerr << "ERROR: FastFile failed get the close file function for '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
 
@@ -115,7 +115,7 @@ struct FastFile {
         if( closefileresult == NULL ) {
             std::cerr << "ERROR: FastFile failed close open file '"
                     << filepath << "')!" << std::endl;
-            PyErr_Print();
+            PyErr_PrintEx(100);
             return;
         }
 
@@ -163,7 +163,7 @@ struct FastFile {
             return true;
         }
 
-        // PyErr_Print();
+        // PyErr_PrintEx(100);
         PyErr_Clear();
         hasfinished = true;
         return false;
