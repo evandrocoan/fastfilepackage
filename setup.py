@@ -61,6 +61,7 @@ except Exception as error:
     __version__ = "0.0.1"
     sys.stderr.write( "Warning: Could not open '%s' due %s" % ( filepath, error ) )
 
+cmdclass = {}
 define_macros = []
 extra_compile_args = []
 
@@ -70,41 +71,59 @@ extra_compile_args = []
 debug_variable_name = 'FASTFILE_DEBUGGER_INT_DEBUG_LEVEL'
 debug_variable_value = os.environ.get( debug_variable_name, None )
 
-# https://stackoverflow.com/questions/17730788/search-and-replace-with-whole-word-only-option
-# https://stackoverflow.com/questions/8106258/cc1plus-warning-command-line-option-wstrict-prototypes-is-valid-for-ada-c-o
-def remove_flags():
-    cfg_vars = get_config_vars()
-
-    for key, value in cfg_vars.items():
-        if type(value) == str:
-            # print('key %-20s' % key, 'value', value)
-            # value = re.sub( r'\-g[^ ]*\b', r'', value )
-            value = re.sub( r'\-O2\b', r'', value )
-            value = re.sub( r'\-O3\b', r'', value )
-            cfg_vars[key] = value
-
 class build_ext_compiler_check(build_ext):
     def build_extensions(self):
         compiler = self.compiler.compiler_type
+
         # print('\n\ncompiler', compiler, 'debug_variable_value', debug_variable_value)
-        if not 'msvc' in compiler:
-            if debug_variable_value is not None:
-                for extension in self.extensions:
-                    if extension == myextension:
+        for extension in self.extensions:
+
+            if extension == myextension:
+
+                if 'msvc' in compiler:
+
+                    if debug_variable_value is not None:
+                        extension.extra_compile_args.append( '/Od' )
+                        extension.extra_compile_args.append( '/Z7' )
+
+                else:
+
+                    if debug_variable_value is not None:
                         extension.extra_compile_args.append( '-O0' )
-                        extension.extra_compile_args.append( '-std=c++11' )
+                        extension.extra_compile_args.append( '-g' )
+                        extension.extra_compile_args.append( '-ggdb' )
+
+                    extension.extra_compile_args.append( '-std=c++11' )
+                    extension.extra_compile_args.append( '-fstack-protector-all' )
+
         super().build_extensions()
 
+
+cmdclass['build_ext'] = build_ext_compiler_check
+
 if debug_variable_value is not None:
-    sys.stderr.write( "Using '%s=%s' environment variable!\n" % (
-            debug_variable_name, debug_variable_value ) )
+    cfg_vars = get_config_vars()
+
+    # https://stackoverflow.com/questions/17730788/search-and-replace-with-whole-word-only-option
+    # https://stackoverflow.com/questions/8106258/cc1plus-warning-command-line-option-wstrict-prototypes-is-valid-for-ada-c-o
+    for key, value in cfg_vars.items():
+
+        if type(value) == str:
+            # print('key %-20s' % key, 'value', value)
+            # value = re.sub( r'\-g[^ ]*\b', r'', value )
+            value = re.sub( r'\-O2\b', r'-O0', value )
+            value = re.sub( r'\-O3\b', r'-O0', value )
+            cfg_vars[key] = value
+
+    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
-    remove_flags()
+
 
 # https://docs.python.org/3.7/distutils/apiref.html#distutils.core.Extension
 # https://stackoverflow.com/questions/30985862/how-to-identify-compiler-before-defining-cython-extensions
 # https://stackoverflow.com/questions/10924885/is-it-possible-to-include-subdirectories-using-dist-utils-setup-py-as-part-of
 myextension = Extension(
+    language = "c++",
     name = 'fastfilepackage',
     sources = [
         'source/debugger.cpp',
@@ -126,7 +145,7 @@ setup(
 
         # https://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute/
         package_data = { '': [ '**.txt', '**.md', '**.py', '**.h', '**.hpp', '**.c', '**.cpp' ], },
-        cmdclass={ 'build_ext': build_ext_compiler_check },
+        cmdclass=cmdclass,
         long_description = readme_contents,
         long_description_content_type='text/markdown',
         classifiers=[

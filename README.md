@@ -33,6 +33,11 @@ pip3 install fastfilepackage
 
 ## Debugging
 
+You you use the `FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1` variable specified on the `Enable debug mode` section,
+you do not need to build the program with `CFLAGS="-O0..." CXXFLAGS="-O0 ..."
+/usr/bin/pip3 install .` because these flags are already set by
+`FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1`.
+
 If Python got segmentation fault,
 you need to install the debug symbol packages,
 and compile the program into mode debug.
@@ -56,6 +61,24 @@ cd /usr/bin
 1. https://stackoverflow.com/questions/1629685/when-and-how-to-use-gccs-stack-protection-feature
 1. https://stackoverflow.com/questions/25678978/how-to-debug-python-script-that-is-crashing-python
 1. https://stackoverflow.com/questions/46265835/how-to-debug-a-python-module-run-with-python-m-from-the-command-line
+
+In case you program enter on a deadlock (or livelock),
+you can use `gdb` to discover or what is happening.
+For this,
+first you need get a `core dump file` of the system somehow.
+Once you get the `core dump` file,
+you can call `gdb program_name coredump`.
+Now,
+you can use the `gdb` commands to navigate between the existing threads and
+to discover which of them are waiting for the other,
+i.e.,e it is causing the deadlock or livelock.
+1. `p / s 0x6ffffdf8ed0` print or content on the address with the format "%s"
+1. `x / 100w 0x6ffffdf8ed0` "examines" the specified memory address
+1. `frame 0` shows the corresponding stack frame `0` as `bt f` (`backtrace full`)
+1. `bt f 5` shows the last 5 stack frames with all debugging symbols data
+1. `f 0` and` p varname` print the `varname` on `frame 0` context
+1. https://stackoverflow.com/questions/14659147/how-to-print-pointer-content-in-gdb
+1. https://stackoverflow.com/questions/14502236/how-to-view-a-pointer-like-an-array-in-gdb
 
 
 ## Enable debug mode
