@@ -156,10 +156,9 @@ struct FastFile {
 
         if( readline != NULL ) {
             linecount += 1;
-            LOG( 1, "linecount %llu currentline %llu readline '%s'", linecount, currentline, PyUnicode_AsUTF8( readline ) );
+            LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, readline, PyUnicode_AsUTF8( readline ) );
 
             linecache.push_back( readline );
-            LOG( 1, "readline '%p'", readline );
             return true;
         }
 
