@@ -30,6 +30,19 @@ Or install it with:
 pip3 install fastfilepackage
 ```
 
+### Alternive file reading
+
+There are available 3 alternative implementations for file reading.
+Both of them,
+should have the same performance.
+1. You can define `USE_GETLINE=0` to use the Python builtins.open() implementation (default)
+1. You can define `USE_GETLINE=1` to use the C++ std::getline() implementation
+1. You can define `USE_GETLINE=2` to use the POSIX C getline() implementation
+
+Usage examples:
+1. `USE_GETLINE=1 pip3 install . -v`
+1. `USE_GETLINE=1 FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip3 install . -v`
+
 
 ## Debugging
 

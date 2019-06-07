@@ -10,37 +10,88 @@
 #include <fstream>
 #include <deque>
 
+// https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
+// https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
+#if defined(USE_GETLINE)
+
+    #if USE_GETLINE == 0
+        #undef USE_GETLINE
+    #endif
+
+    #if defined(__unix__)
+        #define USE_POSIX_GETLINE
+
+        #if USE_GETLINE == 1
+            #undef USE_POSIX_GETLINE
+        #endif
+    #endif
+#endif
+
 struct FastFile {
     const char* filepath;
+
+    PyObject* emtpycacheobject;
+    std::deque<PyObject*> linecache;
 
     bool hasclosed;
     bool hasfinished;
     long long int linecount;
     long long int currentline;
 
-    PyObject* emtpycacheobject;
-    std::deque<PyObject*> linecache;
+#if defined(USE_GETLINE)
+    char* readline;
+    size_t linebuffersize;
 
+    #ifdef USE_POSIX_GETLINE
+        FILE* cfilestream;
+    #else
+        std::ifstream fileifstream;
+    #endif
+#else
     PyObject* iomodule;
     PyObject* openfile;
     PyObject* fileiterator;
+#endif
 
     // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
     FastFile(const char* filepath) : filepath(filepath), hasclosed(false), hasfinished(false), linecount(0), currentline(0)
     {
         LOG( 1, "Constructor with filepath=%s", filepath );
-        resetlines();
-
-        // https://stackoverflow.com/questions/47054623/using-python3-c-api-to-add-to-builtins
-        iomodule = PyImport_ImportModule( "builtins" );
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
 
+        resetlines();
         if( emtpycacheobject == NULL ) {
             std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
                     << filepath << "')!" << std::endl;
             PyErr_PrintEx(100);
             return;
         }
+
+#if defined(USE_GETLINE)
+        linebuffersize = 131072;
+        readline = (char*) malloc( linebuffersize );
+
+        if( readline == NULL ) {
+            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for '"
+                    << filepath << "'!" << std::endl;
+        }
+
+    #ifdef USE_POSIX_GETLINE
+        cfilestream = fopen( filepath, "r" );
+
+        if( cfilestream == NULL ) {
+            std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
+        }
+    #else
+        fileifstream.open( filepath );
+
+        if( fileifstream.fail() ) {
+            std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
+        }
+    #endif
+#else
+        // https://stackoverflow.com/questions/47054623/using-python3-c-api-to-add-to-builtins
+        iomodule = PyImport_ImportModule( "builtins" );
 
         if( iomodule == NULL ) {
             std::cerr << "ERROR: FastFile failed to import the io module (and open the file '"
@@ -92,6 +143,7 @@ struct FastFile {
             PyErr_PrintEx(100);
             return;
         }
+#endif
     }
 
     ~FastFile() {
@@ -109,6 +161,29 @@ struct FastFile {
         }
 
         hasclosed = true;
+        Py_XDECREF( emtpycacheobject );
+
+        for( PyObject* pyobject : linecache ) {
+            Py_DECREF( pyobject );
+        }
+
+#if defined(USE_GETLINE)
+        if( readline ) {
+            free( readline );
+            readline = NULL;
+        }
+
+        #ifdef USE_POSIX_GETLINE
+            if( cfilestream != NULL ) {
+                fclose( cfilestream );
+                cfilestream = NULL;
+            }
+        #else
+            if( fileifstream.is_open() ) {
+                fileifstream.close();
+            }
+        #endif
+#else
         PyObject* closefunction = PyObject_GetAttrString( openfile, "close" );
 
         if( closefunction == NULL ) {
@@ -129,14 +204,10 @@ struct FastFile {
         }
         Py_DECREF( closefileresult );
 
-        Py_XDECREF( emtpycacheobject );
         Py_XDECREF( iomodule );
         Py_XDECREF( openfile );
         Py_XDECREF( fileiterator );
-
-        for( PyObject* pyobject : linecache ) {
-            Py_DECREF( pyobject );
-        }
+#endif
     }
 
     void resetlines(int linetoreset=-1) {
@@ -147,6 +218,23 @@ struct FastFile {
         std::stringstream stream;
 
         if( linestoget ) {
+        #if defined(USE_GETLINE)
+            const char* cppline;
+            unsigned int current = 1;
+
+            for( PyObject* linepy : linecache ) {
+                ++current;
+                cppline = PyUnicode_AsUTF8( linepy );
+                stream << std::string{cppline};
+
+                if( linestoget < current ) {
+                    break;
+                }
+                else {
+                    stream << '\n';
+                }
+            }
+        #else
             char* cpplinenonconst;
             const char* cppline;
             Py_ssize_t linesize;
@@ -169,6 +257,7 @@ struct FastFile {
                     break;
                 }
             }
+        #endif
         }
         return stream.str();
     }
@@ -177,6 +266,39 @@ struct FastFile {
     bool _getline() {
         // Fix StopIteration being raised multiple times because _getlines is called multiple times
         if( hasfinished ) { return false; }
+
+#if defined(USE_GETLINE)
+    #ifdef USE_POSIX_GETLINE
+        ssize_t charsread;
+        if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
+        {
+            linecount += 1;
+            readline[charsread-1] = '\0';
+
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
+            linecache.push_back( pythonobject );
+
+            // Py_XINCREF( emtpycacheobject );
+            // linecache.push_back( emtpycacheobject );
+            LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
+            return true;
+        }
+    #else
+        if( !fileifstream.eof() )
+        {
+            linecount += 1;
+            fileifstream.getline( readline, linebuffersize );
+
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, fileifstream.gcount(), "replace" );
+            linecache.push_back( pythonobject );
+
+            // Py_XINCREF( emtpycacheobject );
+            // linecache.push_back( emtpycacheobject );
+            LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
+            return true;
+        }
+    #endif
+#else
         PyObject* readline = PyObject_CallObject( fileiterator, NULL );
 
         if( readline != NULL ) {
@@ -186,6 +308,7 @@ struct FastFile {
             linecache.push_back( readline );
             return true;
         }
+#endif
 
         // PyErr_PrintEx(100);
         PyErr_Clear();

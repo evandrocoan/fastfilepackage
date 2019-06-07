@@ -69,7 +69,10 @@ extra_compile_args = []
 # set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip3 install .
 # https://stackoverflow.com/questions/677577/distutils-how-to-pass-a-user-defined-parameter-to-setup-py
 debug_variable_name = 'FASTFILE_DEBUGGER_INT_DEBUG_LEVEL'
+getline_variable_name = 'USE_GETLINE'
+
 debug_variable_value = os.environ.get( debug_variable_name, None )
+getline_variable_value = os.environ.get( getline_variable_name, None )
 
 class build_ext_compiler_check(build_ext):
     def build_extensions(self):
@@ -117,6 +120,11 @@ if debug_variable_value is not None:
 
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
+
+
+if getline_variable_value is not None:
+    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( getline_variable_name, getline_variable_value ) )
+    define_macros.append( (getline_variable_name, getline_variable_value) )
 
 
 # https://docs.python.org/3.7/distutils/apiref.html#distutils.core.Extension
