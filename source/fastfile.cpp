@@ -65,17 +65,17 @@ struct FastFile {
             PyErr_PrintEx(100);
             return;
         }
-        PyObject* openfileresult = PyObject_CallObject( iterfunction, NULL );
+        PyObject* openiteratorobject = PyObject_CallObject( iterfunction, NULL );
         Py_DECREF( iterfunction );
 
-        if( openfileresult == NULL ) {
+        if( openiteratorobject == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
                     << filepath << "')!" << std::endl;
             PyErr_PrintEx(100);
             return;
         }
         fileiterator = PyObject_GetAttrString( openfile, "__next__" );
-        Py_DECREF( openfileresult );
+        Py_DECREF( openiteratorobject );
 
         if( fileiterator == NULL ) {
             std::cerr << "ERROR: FastFile failed get the io module iterator object (and open the file '"
