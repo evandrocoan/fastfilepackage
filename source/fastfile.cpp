@@ -13,6 +13,7 @@
 struct FastFile {
     const char* filepath;
 
+    bool hasclosed;
     bool hasfinished;
     long long int linecount;
     long long int currentline;
@@ -25,7 +26,7 @@ struct FastFile {
     PyObject* fileiterator;
 
     // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
-    FastFile(const char* filepath) : filepath(filepath), hasfinished(false), linecount(0), currentline(0)
+    FastFile(const char* filepath) : filepath(filepath), hasclosed(false), hasfinished(false), linecount(0), currentline(0)
     {
         LOG( 1, "Constructor with filepath=%s", filepath );
         resetlines();
@@ -86,20 +87,20 @@ struct FastFile {
     }
 
     ~FastFile() {
-        LOG( 1, "Destructor linecount %llu currentline %llu", linecount, currentline );
-        this->close();
-        Py_XDECREF( emtpycacheobject );
-        Py_XDECREF( iomodule );
-        Py_XDECREF( openfile );
-        Py_XDECREF( fileiterator );
-
-        for( PyObject* pyobject : linecache ) {
-            Py_DECREF( pyobject );
+        LOG( 1, "Destructor linecount %llu currentline %llu hasclosed %d", linecount, currentline, hasclosed );
+        if( hasclosed ) {
+            return;
         }
+        this->close();
     }
 
     void close() {
-        LOG( 1, "linecount %llu currentline %llu", linecount, currentline );
+        LOG( 1, "linecount %llu currentline %llu hasclosed %d", linecount, currentline, hasclosed );
+        if( hasclosed ) {
+            return;
+        }
+
+        hasclosed = true;
         PyObject* closefunction = PyObject_GetAttrString( openfile, "close" );
 
         if( closefunction == NULL ) {
@@ -118,8 +119,16 @@ struct FastFile {
             PyErr_PrintEx(100);
             return;
         }
-
         Py_DECREF( closefileresult );
+
+        Py_XDECREF( emtpycacheobject );
+        Py_XDECREF( iomodule );
+        Py_XDECREF( openfile );
+        Py_XDECREF( fileiterator );
+
+        for( PyObject* pyobject : linecache ) {
+            Py_DECREF( pyobject );
+        }
     }
 
     void resetlines(int linetoreset=-1) {
