@@ -147,13 +147,23 @@ struct FastFile {
         std::stringstream stream;
 
         if( linestoget ) {
+            char* cpplinenonconst;
             const char* cppline;
+            Py_ssize_t linesize;
             unsigned int current = 1;
 
             for( PyObject* linepy : linecache ) {
                 ++current;
-                cppline = PyUnicode_AsUTF8( linepy );
-                stream << std::string{cppline};
+                cppline = PyUnicode_AsUTF8AndSize( linepy, &linesize );
+
+                if( cppline[linesize-1] == '\n' ) {
+                    cpplinenonconst = const_cast<char *>( cppline );
+                    cpplinenonconst[linesize-1] = '\0';
+                    stream << std::string{cpplinenonconst};
+                }
+                else {
+                    stream << std::string{cppline};
+                }
 
                 if( linestoget < current ) {
                     break;
@@ -167,18 +177,12 @@ struct FastFile {
     bool _getline() {
         // Fix StopIteration being raised multiple times because _getlines is called multiple times
         if( hasfinished ) { return false; }
-
         PyObject* readline = PyObject_CallObject( fileiterator, NULL );
 
         if( readline != NULL ) {
             linecount += 1;
-            Py_ssize_t lastindex = PyUnicode_GET_LENGTH( readline ) - 1;
-
-            if( PyUnicode_READ_CHAR( readline, lastindex ) == '\n' ) {
-                PyUnicode_WRITE( PyUnicode_KIND( readline ), PyUnicode_DATA( readline ), lastindex, '\0' );
-            }
-
             LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, readline, PyUnicode_AsUTF8( readline ) );
+
             linecache.push_back( readline );
             return true;
         }
