@@ -42,7 +42,8 @@ static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwargs) {
         return -1;
     }
 
-    self->cppobjectpointer = new FastFile( filepath );
+    FastFile* fast = new FastFile( filepath );
+    self->cppobjectpointer = fast;
     return 0;
 }
 
