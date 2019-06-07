@@ -147,17 +147,25 @@ struct FastFile {
         std::stringstream stream;
 
         if( linestoget ) {
+            char* cpplinenonconst;
             const char* cppline;
+            Py_ssize_t linesize;
             unsigned int current = 1;
 
-            for( PyObject* line : linecache ) {
+            for( PyObject* linepy : linecache ) {
                 ++current;
-                cppline = PyUnicode_AsUTF8( line );
-                stream << std::string{cppline};
+                cppline = PyUnicode_AsUTF8AndSize( linepy, &linesize );
+
+                if( cppline[linesize-1] == '\n' ) {
+                    cpplinenonconst = const_cast<char *>( cppline );
+                    cpplinenonconst[linesize-1] = '\0';
+                    stream << std::string{cpplinenonconst};
+                }
+                else {
+                    stream << std::string{cppline};
+                }
 
                 if( linestoget < current ) {
-                    stream.seekp( -1, std::ios_base::end );
-                    stream << " ";
                     break;
                 }
             }
