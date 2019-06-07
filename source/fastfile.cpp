@@ -59,7 +59,7 @@ struct FastFile {
         LOG( 1, "Constructor with filepath=%s", filepath );
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
 
-        resetlines();
+        resetlines(-1);
         if( emtpycacheobject == NULL ) {
             std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
                     << filepath << "')!" << std::endl;
@@ -210,7 +210,7 @@ struct FastFile {
 #endif
     }
 
-    void resetlines(int linetoreset=-1) {
+    void resetlines(int linetoreset=0) {
         currentline = linetoreset;
     }
 
@@ -317,7 +317,7 @@ struct FastFile {
     }
 
     bool next() {
-        resetlines();
+        resetlines(-1);
 
         if( linecache.size() ) {
             Py_DECREF( linecache[0] );
