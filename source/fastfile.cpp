@@ -56,7 +56,15 @@ struct FastFile {
             PyErr_PrintEx(100);
             return;
         }
-        openfile = PyObject_CallFunction( openfunction, "s", filepath, "s", "r", "i", -1, "s", "UTF8", "s", "ignore" );
+        // https://stackoverflow.com/questions/56482802/c-python-api-extensions-is-ignoring-openerrors-ignore-and-keeps-throwing-the
+        openfile = PyObject_CallFunction( openfunction, "ssiss", filepath, "r", -1, "UTF8", "ignore" );
+
+        if( openfile == NULL ) {
+            std::cerr << "ERROR: FastFile failed to open the file'"
+                    << filepath << "'!" << std::endl;
+            PyErr_PrintEx(100);
+            return;
+        }
         PyObject* iterfunction = PyObject_GetAttrString( openfile, "__iter__" );
         Py_DECREF( openfunction );
 
