@@ -272,8 +272,15 @@ struct FastFile {
         ssize_t charsread;
         if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
         {
+            --charsread;
             linecount += 1;
-            readline[charsread-1] = '\0';
+
+            if( readline[charsread] == '\n' ) {
+                readline[charsread] = '\0';
+            }
+            else {
+                ++charsread;
+            }
 
             PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
             linecache.push_back( pythonobject );
