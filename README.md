@@ -4,8 +4,10 @@
 An module written with pure Python C Extensions to open a file and
 cache the more recent accessed lines.
 See these files for an usage example:
-1. [fastfiletest.py](fastfiletest.py)
-1. [fastfiletest.cpp](fastfiletest.cpp)
+1. [tests/fastfileperformance.py](tests/fastfileperformance.py)
+1. [tests/fastfiletest.py](tests/fastfiletest.py)
+1. [tests/getline_c_performance.cpp](tests/getline_c_performance.cpp)
+1. [tests/getline_cpp_performance.cpp](tests/getline_cpp_performance.cpp)
 
 
 ## Installation
