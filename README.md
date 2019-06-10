@@ -37,21 +37,21 @@ pip3 install fastfilepackage
 There are available 3 alternative implementations for file reading.
 Both of them,
 should have the same performance.
-1. You can define `USE_GETLINE=0` to use the Python builtins.open() implementation (default)
-1. You can define `USE_GETLINE=1` to use the C++ std::getline() implementation
-1. You can define `USE_GETLINE=2` to use the POSIX C getline() implementation
+1. You can define `FASTFILE_GETLINE=0` to use the Python builtins.open() implementation (default)
+1. You can define `FASTFILE_GETLINE=1` to use the C++ std::getline() implementation
+1. You can define `FASTFILE_GETLINE=2` to use the POSIX C getline() implementation
 
 Usage examples:
-1. `USE_GETLINE=1 pip3 install . -v`
-1. `USE_GETLINE=1 FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip3 install . -v`
+1. `FASTFILE_GETLINE=1 pip3 install . -v`
+1. `FASTFILE_GETLINE=1 FASTFILE_DEBUG=1 pip3 install . -v`
 
 
 ## Debugging
 
-You you use the `FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1` variable specified on the `Enable debug mode` section,
+You you use the `FASTFILE_DEBUG=1` variable specified on the `Enable debug mode` section,
 you do not need to build the program with `CFLAGS="-O0..." CXXFLAGS="-O0 ..."
 /usr/bin/pip3 install .` because these flags are already set by
-`FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1`.
+`FASTFILE_DEBUG=1`.
 
 If Python got segmentation fault,
 you need to install the debug symbol packages,
@@ -101,23 +101,23 @@ i.e.,e it is causing the deadlock or livelock.
 The default debug level is `0` where no debugging message code is generated into the final binary.
 Guaranteeing maximum performance.
 If you would like to compile a binary with debug messages,
-define the environment variable `FASTFILE_DEBUGGER_INT_DEBUG_LEVEL` before running the installer.
+define the environment variable `FASTFILE_DEBUG` before running the installer.
 You can see the debugging level available on the file [source/debugger.h](source/debugger.h):
 ```
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install .
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip install -e .
+FASTFILE_DEBUG=1 pip install .
+FASTFILE_DEBUG=1 pip install -e .
 
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py install
-FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 python setup.py develop
+FASTFILE_DEBUG=1 python setup.py install
+FASTFILE_DEBUG=1 python setup.py develop
 ```
 
 If you are on Windows,
 run it like this:
 ```
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install .
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip install -e .
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py install
-set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && python setup.py develop
+set "FASTFILE_DEBUG=1" && pip install .
+set "FASTFILE_DEBUG=1" && pip install -e .
+set "FASTFILE_DEBUG=1" && python setup.py install
+set "FASTFILE_DEBUG=1" && python setup.py develop
 ```
 
 To debug `refcounts` leaks:

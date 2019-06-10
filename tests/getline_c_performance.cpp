@@ -5,7 +5,7 @@
 #include <fstream>
 #include <deque>
 
-#define FASTFILE_DEBUGGER_INT_DEBUG_LEVEL 1
+#define FASTFILE_DEBUG 1
 #include "../source/debugger.cpp"
 
 struct FastFile

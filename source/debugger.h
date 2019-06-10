@@ -47,8 +47,8 @@
  *  8     - High called functions, i.e., create very big massive text output
  *  1024  - Disable debugging with time stamp.
  */
-#if !defined(FASTFILE_DEBUGGER_INT_DEBUG_LEVEL)
-  #define FASTFILE_DEBUGGER_INT_DEBUG_LEVEL 0
+#if !defined(FASTFILE_DEBUG)
+  #define FASTFILE_DEBUG 0
 #endif
 
 
@@ -58,7 +58,7 @@
 /**
  * Control all program debugging.
  */
-#if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL > DEBUG_LEVEL_DISABLED_DEBUG
+#if FASTFILE_DEBUG > DEBUG_LEVEL_DISABLED_DEBUG
   #define DEBUG
   #include <iostream>
   #include <chrono>
@@ -72,7 +72,7 @@
   extern std::clock_t _debugger_current_saved_c_time;
   extern std::chrono::time_point< std::chrono::high_resolution_clock > _debugger_current_saved_chrono_time;
 
-  #if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL & DEBUG_LEVEL_WITHOUT_TIME_STAMP
+  #if FASTFILE_DEBUG & DEBUG_LEVEL_WITHOUT_TIME_STAMP
     #define _DEBUGGER_TIME_STAMP_HEADER
   #else
     #define _DEBUGGER_TIME_STAMP_HEADER \
@@ -119,7 +119,7 @@
 
   /**
    * Print like function for logging putting a new line at the end of string. See the variables
-   * 'FASTFILE_DEBUGGER_INT_DEBUG_LEVEL' for the available levels.
+   * 'FASTFILE_DEBUG' for the available levels.
    *
    * On this function only, a time stamp on scientific notation as `d.dde+ddd d.ddde+ddd` will be
    * used. These values mean the `CPU time used` in milliseconds and the `Wall clock time passed`
@@ -131,7 +131,7 @@
   #define LOG( level, ... ) \
   do \
   { \
-    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
+    if( level & FASTFILE_DEBUG ) \
     { \
       /* std::clock_t ctime_clock_now = std::clock(); */ \
       auto chrono_clock_now = std::chrono::high_resolution_clock::now(); \
@@ -150,7 +150,7 @@
   #define LOGLN( level, ... ) \
   do \
   { \
-    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
+    if( level & FASTFILE_DEBUG ) \
     { \
       /* std::clock_t ctime_clock_now = std::clock(); */ \
       auto chrono_clock_now = std::chrono::high_resolution_clock::now(); \
@@ -169,7 +169,7 @@
   #define LOGLC( level, ... ) \
   do \
   { \
-    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
+    if( level & FASTFILE_DEBUG ) \
     { \
       std::cout << tfm::format( __VA_ARGS__ ) << std::flush; \
     } \
@@ -182,7 +182,7 @@
   #define LOGCD( level, code ) \
   do \
   { \
-    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
+    if( level & FASTFILE_DEBUG ) \
     { \
       code; \
     } \
@@ -195,7 +195,7 @@
   #define PRINT( level, ... ) \
   do \
   { \
-    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
+    if( level & FASTFILE_DEBUG ) \
     { \
       std::cout << tfm::format( __VA_ARGS__ ) << std::endl; \
     } \
@@ -208,7 +208,7 @@
   #define PRINTLN( level, ... ) \
   do \
   { \
-    if( level & FASTFILE_DEBUGGER_INT_DEBUG_LEVEL ) \
+    if( level & FASTFILE_DEBUG ) \
     { \
       std::cout << tfm::format( __VA_ARGS__ ) << std::flush; \
     } \
@@ -243,7 +243,7 @@
   while( 0 )
 
 
-#endif // #if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL > DEBUG_LEVEL_DISABLED_DEBUG
+#endif // #if FASTFILE_DEBUG > DEBUG_LEVEL_DISABLED_DEBUG
 
 
 #endif // FASTFILE_APP_DEBUGGER_INT_DEBUG_LEVEL_H

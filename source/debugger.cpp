@@ -26,7 +26,7 @@
 //
 // How do I use extern to share variables between source files?
 // https://stackoverflow.com/questions/1433204/how-do-i-use-extern-to-share-variables-between-source-files
-#if FASTFILE_DEBUGGER_INT_DEBUG_LEVEL > DEBUG_LEVEL_DISABLED_DEBUG
+#if FASTFILE_DEBUG > DEBUG_LEVEL_DISABLED_DEBUG
   // initialize time tracking `extern` variables shared across all source files, do not change them
   std::clock_t _debugger_current_saved_c_time = std::clock();
   std::chrono::time_point<std::chrono::high_resolution_clock> _debugger_current_saved_chrono_time = std::chrono::high_resolution_clock::now();

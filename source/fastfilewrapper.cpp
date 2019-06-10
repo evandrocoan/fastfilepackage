@@ -4,8 +4,8 @@
 
 // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
 // https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
-#if !defined(FASTFILE_DEBUGGER_INT_DEBUG_LEVEL)
-    #define FASTFILE_DEBUGGER_INT_DEBUG_LEVEL 0
+#if !defined(FASTFILE_DEBUG)
+    #define FASTFILE_DEBUG 0
 #endif
 
 #include "version.h"

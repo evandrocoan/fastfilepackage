@@ -12,16 +12,16 @@
 
 // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
 // https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
-#if defined(USE_GETLINE)
+#if defined(FASTFILE_GETLINE)
 
-    #if USE_GETLINE == 0
-        #undef USE_GETLINE
+    #if FASTFILE_GETLINE == 0
+        #undef FASTFILE_GETLINE
     #endif
 
     #if defined(__unix__)
         #define USE_POSIX_GETLINE
 
-        #if USE_GETLINE == 1
+        #if FASTFILE_GETLINE == 1
             #undef USE_POSIX_GETLINE
         #endif
     #endif
@@ -38,7 +38,7 @@ struct FastFile {
     long long int linecount;
     long long int currentline;
 
-#if defined(USE_GETLINE)
+#if defined(FASTFILE_GETLINE)
     char* readline;
     size_t linebuffersize;
 
@@ -67,7 +67,7 @@ struct FastFile {
             return;
         }
 
-#if defined(USE_GETLINE)
+#if defined(FASTFILE_GETLINE)
         linebuffersize = 131072;
         readline = (char*) malloc( linebuffersize );
 
@@ -167,7 +167,7 @@ struct FastFile {
             Py_DECREF( pyobject );
         }
 
-#if defined(USE_GETLINE)
+#if defined(FASTFILE_GETLINE)
         if( readline ) {
             free( readline );
             readline = NULL;
@@ -218,7 +218,7 @@ struct FastFile {
         std::stringstream stream;
 
         if( linestoget ) {
-        #if defined(USE_GETLINE)
+        #if defined(FASTFILE_GETLINE)
             const char* cppline;
             unsigned int current = 1;
 
@@ -267,7 +267,7 @@ struct FastFile {
         // Fix StopIteration being raised multiple times because _getlines is called multiple times
         if( hasfinished ) { return false; }
 
-#if defined(USE_GETLINE)
+#if defined(FASTFILE_GETLINE)
     #ifdef USE_POSIX_GETLINE
         ssize_t charsread;
         if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )

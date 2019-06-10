@@ -65,11 +65,11 @@ cmdclass = {}
 define_macros = []
 extra_compile_args = []
 
-# FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1 pip3 install .
-# set "FASTFILE_DEBUGGER_INT_DEBUG_LEVEL=1" && pip3 install .
+# FASTFILE_DEBUG=1 pip3 install .
+# set "FASTFILE_DEBUG=1" && pip3 install .
 # https://stackoverflow.com/questions/677577/distutils-how-to-pass-a-user-defined-parameter-to-setup-py
-debug_variable_name = 'FASTFILE_DEBUGGER_INT_DEBUG_LEVEL'
-getline_variable_name = 'USE_GETLINE'
+debug_variable_name = 'FASTFILE_DEBUG'
+getline_variable_name = 'FASTFILE_GETLINE'
 
 debug_variable_value = os.environ.get( debug_variable_name, None )
 getline_variable_value = os.environ.get( getline_variable_name, None )
