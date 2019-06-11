@@ -10,24 +10,34 @@
 #include <fstream>
 #include <deque>
 
-#include <regex.h>
-
 // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
 // https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
 #if defined(FASTFILE_GETLINE)
 
     #if FASTFILE_GETLINE == 0
         #undef FASTFILE_GETLINE
-    #endif
 
-    #if defined(__unix__)
-        #define USE_POSIX_GETLINE
+    #else
+        #if defined(__unix__)
+            #define USE_POSIX_GETLINE
 
-        #if FASTFILE_GETLINE == 1
-            #undef USE_POSIX_GETLINE
+            #if FASTFILE_GETLINE == 1
+                #undef USE_POSIX_GETLINE
+            #endif
         #endif
     #endif
 #endif
+
+
+#if !defined(FASTFILE_REGEX) || !defined(FASTFILE_GETLINE) || !defined(USE_POSIX_GETLINE) || FASTFILE_GETLINE != 2
+    #undef FASTFILE_REGEX
+    #define FASTFILE_REGEX 0
+
+#else
+    #include <regex.h>
+
+#endif
+
 
 struct FastFile {
     const char* filepath;
@@ -36,19 +46,22 @@ struct FastFile {
     std::deque<PyObject*> linecache;
 
     bool hasclosed;
-    bool getnewline;
-    bool hasinitializedmonsterregex;
     bool hasfinished;
-    long long int linecount;
-    long long int currentline;
 
 #if defined(FASTFILE_GETLINE)
     char* readline;
     size_t linebuffersize;
-    regex_t monsterregex;
+
+    #if FASTFILE_REGEX == 1
+        regex_t monsterregex;
+
+        bool getnewline;
+        bool hasinitializedmonsterregex;
+    #endif
 
     #ifdef USE_POSIX_GETLINE
         FILE* cfilestream;
+
     #else
         std::ifstream fileifstream;
     #endif
@@ -58,13 +71,18 @@ struct FastFile {
     PyObject* fileiterator;
 #endif
 
+    long long int linecount;
+    long long int currentline;
+
     // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
     FastFile(const char* filepath, const char* rawregex) :
                 filepath(filepath),
                 hasclosed(false),
+                hasfinished(false),
+            #if FASTFILE_REGEX == 1
                 getnewline(false),
                 hasinitializedmonsterregex(false),
-                hasfinished(false),
+            #endif
                 linecount(0),
                 currentline(-1)
     {
@@ -89,16 +107,19 @@ struct FastFile {
         }
 
     #ifdef USE_POSIX_GETLINE
-        int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
 
-        if( rawresultregex ) {
-            std::cerr << "ERROR: FastFile failed to compile rawregex for '"
-                    << filepath << " & " << rawregex << ", error==" << rawresultregex << "'!" << std::endl;
-            return;
-        }
-        else {
-            hasinitializedmonsterregex = true;
-        }
+        #if FASTFILE_REGEX == 1
+            int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
+
+            if( rawresultregex ) {
+                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                        << filepath << " & " << rawregex << ", error==" << rawresultregex << "'!" << std::endl;
+                return;
+            }
+            else {
+                hasinitializedmonsterregex = true;
+            }
+        #endif
 
         cfilestream = fopen( filepath, "r" );
         if( cfilestream == NULL ) {
@@ -197,10 +218,12 @@ struct FastFile {
             readline = NULL;
         }
 
+    #if FASTFILE_REGEX == 1
         if( hasinitializedmonsterregex ) {
             hasinitializedmonsterregex = false;
             regfree( &monsterregex );
         }
+    #endif
 
         #ifdef USE_POSIX_GETLINE
             if( cfilestream != NULL ) {
@@ -304,10 +327,12 @@ struct FastFile {
         {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
+            #if FASTFILE_REGEX == 1
                 if( !getnewline
                     || regexec( &monsterregex, readline, 0, NULL, 0 ) != REG_NOMATCH )
                 {
                     getnewline = false;
+            #endif
                     --charsread;
                     linecount += 1;
 
@@ -325,9 +350,11 @@ struct FastFile {
                     // linecache.push_back( emtpycacheobject );
                     LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
                     return true;
+            #if FASTFILE_REGEX == 1
                 }
 
                 LOG( 1, "regexresult: %s readline %p charsread %d '%s'", regexec( &monsterregex, readline, 0, NULL, 0 ), readline, charsread, readline );
+            #endif
             }
             else {
                 break;
@@ -368,8 +395,10 @@ struct FastFile {
 
     bool next() {
         currentline = -1;
-        getnewline = true;
 
+    #if FASTFILE_REGEX == 1
+        getnewline = true;
+    #endif
         if( linecache.size() ) {
             Py_DECREF( linecache[0] );
             linecache.pop_front();
@@ -386,6 +415,7 @@ struct FastFile {
         currentline += 1;
         LOG( 1, "linecache.size %zd linecount %llu currentline %llu", linecache.size(), linecount, currentline );
 
+    #if FASTFILE_REGEX == 1
         if( getnewline ) {
             long int popfrontcount = 0;
             const char* cppline;
@@ -406,9 +436,13 @@ struct FastFile {
                 linecache.pop_front();
             }
         }
+    #endif
 
-        if( currentline < static_cast<long long int>( linecache.size() ) ) {
+        if( currentline < static_cast<long long int>( linecache.size() ) )
+        {
+        #if FASTFILE_REGEX == 1
             getnewline = false;
+        #endif
             return linecache[currentline];
         }
         else

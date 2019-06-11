@@ -46,6 +46,17 @@ Usage examples:
 1. `FASTFILE_GETLINE=1 FASTFILE_DEBUG=1 pip3 install . -v`
 
 
+### File reading optimizations
+
+You can enable a file reading optimization with the environment variable `FASTFILE_REGEX=1`.
+Do not define this variable or define it as `FASTFILE_REGEX=0` to disable the optimization.
+
+Note:
+Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set.
+If the variable `FASTFILE_GETLINE` is not defined,
+any definition of `FASTFILE_REGEX` is ignored.
+
+
 ## Debugging
 
 You you use the `FASTFILE_DEBUG=1` variable specified on the `Enable debug mode` section,

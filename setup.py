@@ -69,9 +69,11 @@ extra_compile_args = []
 # set "FASTFILE_DEBUG=1" && pip3 install .
 # https://stackoverflow.com/questions/677577/distutils-how-to-pass-a-user-defined-parameter-to-setup-py
 debug_variable_name = 'FASTFILE_DEBUG'
+regex_variable_name = 'FASTFILE_REGEX'
 getline_variable_name = 'FASTFILE_GETLINE'
 
 debug_variable_value = os.environ.get( debug_variable_name, None )
+regex_variable_value = os.environ.get( regex_variable_name, None )
 getline_variable_value = os.environ.get( getline_variable_name, None )
 
 class build_ext_compiler_check(build_ext):
@@ -120,6 +122,11 @@ if debug_variable_value is not None:
 
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
+
+
+if regex_variable_value is not None:
+    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( regex_variable_name, regex_variable_value ) )
+    define_macros.append( (regex_variable_name, regex_variable_value) )
 
 
 if getline_variable_value is not None:
