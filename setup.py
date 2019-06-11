@@ -106,7 +106,7 @@ class build_ext_compiler_check(build_ext):
 
 cmdclass['build_ext'] = build_ext_compiler_check
 
-if debug_variable_value:
+def setcppoptmiztionflag(level):
     cfg_vars = get_config_vars()
 
     # https://stackoverflow.com/questions/17730788/search-and-replace-with-whole-word-only-option
@@ -116,12 +116,17 @@ if debug_variable_value:
         if type(value) == str:
             # print('key %-20s' % key, 'value', value)
             # value = re.sub( r'\-g[^ ]*\b', r'', value )
-            value = re.sub( r'\-O2\b', r'-O0', value )
-            value = re.sub( r'\-O3\b', r'-O0', value )
+            value = re.sub( r'\-O2\b', level, value )
+            value = re.sub( r'\-O3\b', level, value )
             cfg_vars[key] = value
+
+if debug_variable_value:
+    setcppoptmiztionflag( r'-O0' )
 
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
+else:
+    setcppoptmiztionflag( r'-O2' )
 
 
 if regex_variable_value:
