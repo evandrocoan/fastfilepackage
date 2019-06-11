@@ -72,9 +72,9 @@ debug_variable_name = 'FASTFILE_DEBUG'
 regex_variable_name = 'FASTFILE_REGEX'
 getline_variable_name = 'FASTFILE_GETLINE'
 
-debug_variable_value = os.environ.get( debug_variable_name, None )
-regex_variable_value = os.environ.get( regex_variable_name, None )
-getline_variable_value = os.environ.get( getline_variable_name, None )
+debug_variable_value = int( os.environ.get( debug_variable_name, 0 ) )
+regex_variable_value = int( os.environ.get( regex_variable_name, 0 ) )
+getline_variable_value = int( os.environ.get( getline_variable_name, 0 ) )
 
 class build_ext_compiler_check(build_ext):
     def build_extensions(self):
@@ -87,13 +87,13 @@ class build_ext_compiler_check(build_ext):
 
                 if 'msvc' in compiler:
 
-                    if debug_variable_value is not None:
+                    if debug_variable_value:
                         extension.extra_compile_args.append( '/Od' )
                         extension.extra_compile_args.append( '/Z7' )
 
                 else:
 
-                    if debug_variable_value is not None:
+                    if debug_variable_value:
                         extension.extra_compile_args.append( '-O0' )
                         extension.extra_compile_args.append( '-g' )
                         extension.extra_compile_args.append( '-ggdb' )
@@ -106,7 +106,7 @@ class build_ext_compiler_check(build_ext):
 
 cmdclass['build_ext'] = build_ext_compiler_check
 
-if debug_variable_value is not None:
+if debug_variable_value:
     cfg_vars = get_config_vars()
 
     # https://stackoverflow.com/questions/17730788/search-and-replace-with-whole-word-only-option
@@ -124,12 +124,12 @@ if debug_variable_value is not None:
     define_macros.append( (debug_variable_name, debug_variable_value) )
 
 
-if regex_variable_value is not None:
+if regex_variable_value:
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( regex_variable_name, regex_variable_value ) )
     define_macros.append( (regex_variable_name, regex_variable_value) )
 
 
-if getline_variable_value is not None:
+if getline_variable_value:
     sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( getline_variable_name, getline_variable_value ) )
     define_macros.append( (getline_variable_name, getline_variable_value) )
 
