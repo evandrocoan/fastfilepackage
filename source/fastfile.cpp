@@ -10,6 +10,8 @@
 #include <fstream>
 #include <deque>
 
+#include <regex.h>
+
 // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
 // https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
 #if defined(FASTFILE_GETLINE)
@@ -34,6 +36,8 @@ struct FastFile {
     std::deque<PyObject*> linecache;
 
     bool hasclosed;
+    bool getnewline;
+    bool hasinitializedmonsterregex;
     bool hasfinished;
     long long int linecount;
     long long int currentline;
@@ -41,6 +45,7 @@ struct FastFile {
 #if defined(FASTFILE_GETLINE)
     char* readline;
     size_t linebuffersize;
+    regex_t monsterregex;
 
     #ifdef USE_POSIX_GETLINE
         FILE* cfilestream;
@@ -54,9 +59,16 @@ struct FastFile {
 #endif
 
     // https://stackoverflow.com/questions/25167543/how-can-i-get-exception-information-after-a-call-to-pyrun-string-returns-nu
-    FastFile(const char* filepath) : filepath(filepath), hasclosed(false), hasfinished(false), linecount(0), currentline(-1)
+    FastFile(const char* filepath, const char* rawregex) :
+                filepath(filepath),
+                hasclosed(false),
+                getnewline(false),
+                hasinitializedmonsterregex(false),
+                hasfinished(false),
+                linecount(0),
+                currentline(-1)
     {
-        LOG( 1, "Constructor with filepath=%s", filepath );
+        LOG( 1, "Constructor with filepath=%s rawregex=%s", filepath, rawregex );
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
 
         if( emtpycacheobject == NULL ) {
@@ -77,6 +89,17 @@ struct FastFile {
         }
 
     #ifdef USE_POSIX_GETLINE
+        int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
+
+        if( rawresultregex ) {
+            std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                    << filepath << " & " << rawregex << ", error==" << rawresultregex << "'!" << std::endl;
+            return;
+        }
+        else {
+            hasinitializedmonsterregex = true;
+        }
+
         cfilestream = fopen( filepath, "r" );
         if( cfilestream == NULL ) {
             std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
@@ -172,6 +195,11 @@ struct FastFile {
         if( readline ) {
             free( readline );
             readline = NULL;
+        }
+
+        if( hasinitializedmonsterregex ) {
+            hasinitializedmonsterregex = false;
+            regfree( &monsterregex );
         }
 
         #ifdef USE_POSIX_GETLINE
@@ -271,25 +299,39 @@ struct FastFile {
 #if defined(FASTFILE_GETLINE)
     #ifdef USE_POSIX_GETLINE
         ssize_t charsread;
-        if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
-        {
-            --charsread;
-            linecount += 1;
 
-            if( readline[charsread] == '\n' ) {
-                readline[charsread] = '\0';
+        while( true )
+        {
+            if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
+            {
+                if( !getnewline
+                    || regexec( &monsterregex, readline, 0, NULL, 0 ) != REG_NOMATCH )
+                {
+                    getnewline = false;
+                    --charsread;
+                    linecount += 1;
+
+                    if( readline[charsread] == '\n' ) {
+                        readline[charsread] = '\0';
+                    }
+                    else {
+                        ++charsread;
+                    }
+
+                    PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
+                    linecache.push_back( pythonobject );
+
+                    // Py_XINCREF( emtpycacheobject );
+                    // linecache.push_back( emtpycacheobject );
+                    LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
+                    return true;
+                }
+
+                LOG( 1, "regexresult: %s readline %p charsread %d '%s'", regexec( &monsterregex, readline, 0, NULL, 0 ), readline, charsread, readline );
             }
             else {
-                ++charsread;
+                break;
             }
-
-            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
-            linecache.push_back( pythonobject );
-
-            // Py_XINCREF( emtpycacheobject );
-            // linecache.push_back( emtpycacheobject );
-            LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
-            return true;
         }
     #else
         if( !fileifstream.eof() )
@@ -326,6 +368,7 @@ struct FastFile {
 
     bool next() {
         currentline = -1;
+        getnewline = true;
 
         if( linecache.size() ) {
             Py_DECREF( linecache[0] );
@@ -343,7 +386,29 @@ struct FastFile {
         currentline += 1;
         LOG( 1, "linecache.size %zd linecount %llu currentline %llu", linecache.size(), linecount, currentline );
 
+        if( getnewline ) {
+            long int popfrontcount = 0;
+            const char* cppline;
+
+            for( PyObject* pyobject : linecache ) {
+                cppline = PyUnicode_AsUTF8( pyobject );
+
+                if( regexec( &monsterregex, cppline, 0, NULL, 0 ) != REG_NOMATCH ) {
+                    break;
+                }
+                else {
+                    ++popfrontcount;
+                }
+            }
+
+            while( popfrontcount-- ) {
+                Py_DECREF( linecache[0] );
+                linecache.pop_front();
+            }
+        }
+
         if( currentline < static_cast<long long int>( linecache.size() ) ) {
+            getnewline = false;
             return linecache[currentline];
         }
         else

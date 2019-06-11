@@ -37,12 +37,16 @@ static PyModuleDef fastfilepackagemodule =
 // initialize PyFastFile Object
 static int PyFastFile_init(PyFastFile* self, PyObject* args, PyObject* kwargs) {
     char* filepath;
+    char* rawregex;
 
-    if( !PyArg_ParseTuple( args, "s", &filepath ) ) {
+    char empty[] = "";
+    static char* kwlist[] = { empty, empty, NULL };
+
+    if( !PyArg_ParseTupleAndKeywords( args, kwargs, "s|s", kwlist, &filepath, &rawregex ) ) {
         return -1;
     }
 
-    FastFile* fast = new FastFile( filepath );
+    FastFile* fast = new FastFile( filepath, rawregex );
     self->cppobjectpointer = fast;
     return 0;
 }
