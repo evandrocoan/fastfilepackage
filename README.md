@@ -56,6 +56,16 @@ Do not define this variable or define it as `FASTFILE_REGEX=0` to disable the op
 1. `FASTFILE_REGEX=2` will use PCRE2 regex library `pcre2.h`:
    http://pcre.org/current/doc/html/pcre2_match.html,
    it requires the installation of the `libpcre2-dev` package with `sudo apt-get install libpcre2-dev`
+1. `FASTFILE_REGEX=3` will use RE2 regex library `re2/re2.h`:
+   https://github.com/google/re2/wiki/CplusplusAPI,
+   it requires the installation of the `re2` library with:
+   ```sh
+   git clone https://github.com/google/re2 re2 &&
+   cd re2 &&
+   make &&
+   sudo make install &&
+   make testinstall
+   ```
 
 Notes:
  * Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set.

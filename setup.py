@@ -114,6 +114,9 @@ class build_ext_compiler_check(build_ext):
                 if regex_variable_value == 2:
                         extension.libraries.append( 'pcre2-8' )
 
+                if regex_variable_value == 3:
+                        extension.libraries.append( 're2' )
+
         super().build_extensions()
 
 

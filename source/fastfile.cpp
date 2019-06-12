@@ -40,6 +40,9 @@
     #elif FASTFILE_REGEX == 2
         #define PCRE2_CODE_UNIT_WIDTH 8
         #include <pcre2.h>
+
+    #elif FASTFILE_REGEX == 3
+        #include <re2/re2.h>
     #endif
 #endif
 
@@ -67,6 +70,10 @@ struct FastFile {
         #elif FASTFILE_REGEX == 2
             pcre2_code* monsterregex;
             pcre2_match_data* unused_match_data;
+
+        #elif FASTFILE_REGEX == 3
+            RE2* monsterregex;
+            RE2::Options myglobaloptions;
         #endif
     #endif
 
@@ -156,6 +163,20 @@ struct FastFile {
                 }
 
                 std::cerr << ", on position==" << erroffset << "'!" << std::endl;
+                return;
+            }
+
+        #elif FASTFILE_REGEX == 3
+            // myglobaloptions.set_posix_syntax(true);
+            monsterregex = new RE2(rawregex, myglobaloptions);
+
+            if( monsterregex->ok() ) {
+                hasinitializedmonsterregex = true;
+            }
+            else {
+                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                        << filepath << " & " << rawregex
+                        << ", error==" << monsterregex->error() << "'!" << std::endl;
                 return;
             }
         #endif
@@ -266,6 +287,9 @@ struct FastFile {
 
         #elif FASTFILE_REGEX == 2
             pcre2_code_free( monsterregex );
+
+        #elif FASTFILE_REGEX == 3
+            delete monsterregex;
         #endif
         }
     #endif
@@ -381,6 +405,9 @@ struct FastFile {
                 #elif FASTFILE_REGEX == 2
                     pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ),
                             PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1
+
+                #elif FASTFILE_REGEX == 3
+                    RE2::PartialMatch( readline, *monsterregex )
                 #endif
                     )
                 {
@@ -413,6 +440,9 @@ struct FastFile {
                     #elif FASTFILE_REGEX == 2
                         pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ),
                                 PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL )
+
+                    #elif FASTFILE_REGEX == 3
+                        RE2::PartialMatch( readline, *monsterregex )
                     #endif
                         , readline, charsread, readline );
             #endif
@@ -489,6 +519,9 @@ struct FastFile {
             #elif FASTFILE_REGEX == 2
                 if( pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( cppline ),
                         PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1 )
+
+            #elif FASTFILE_REGEX == 3
+                if( RE2::PartialMatch( cppline, *monsterregex ) )
             #endif
                 {
                     break;
