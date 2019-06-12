@@ -51,10 +51,16 @@ Usage examples:
 You can enable a file reading optimization with the environment variable `FASTFILE_REGEX=1`.
 Do not define this variable or define it as `FASTFILE_REGEX=0` to disable the optimization.
 
-Note:
-Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set.
-If the variable `FASTFILE_GETLINE` is not defined,
-any definition of `FASTFILE_REGEX` is ignored.
+1. `FASTFILE_REGEX=1` will use the C language builtin regex library `regex.h`:
+   https://linux.die.net/man/3/regexec
+1. `FASTFILE_REGEX=2` will use PCRE2 regex library `pcre2.h`:
+   http://pcre.org/current/doc/html/pcre2_match.html,
+   it requires the installation of the `libpcre2-dev` package with `sudo apt-get install libpcre2-dev`
+
+Notes:
+ * Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set.
+   If the variable `FASTFILE_GETLINE` is not defined,
+   any definition of `FASTFILE_REGEX` is ignored.
 
 
 ## Debugging

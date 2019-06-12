@@ -34,8 +34,13 @@
     #define FASTFILE_REGEX 0
 
 #else
-    #include <regex.h>
+    #if FASTFILE_REGEX == 1
+        #include <regex.h>
 
+    #elif FASTFILE_REGEX == 2
+        #define PCRE2_CODE_UNIT_WIDTH 8
+        #include <pcre2.h>
+    #endif
 #endif
 
 
@@ -52,11 +57,17 @@ struct FastFile {
     char* readline;
     size_t linebuffersize;
 
-    #if FASTFILE_REGEX == 1
-        regex_t monsterregex;
-
+    #if FASTFILE_REGEX != 0
         bool getnewline;
         bool hasinitializedmonsterregex;
+
+        #if FASTFILE_REGEX == 1
+            regex_t monsterregex;
+
+        #elif FASTFILE_REGEX == 2
+            pcre2_code* monsterregex;
+            pcre2_match_data* unused_match_data;
+        #endif
     #endif
 
     #ifdef USE_POSIX_GETLINE
@@ -79,7 +90,8 @@ struct FastFile {
                 filepath(filepath),
                 hasclosed(false),
                 hasfinished(false),
-            #if FASTFILE_REGEX == 1
+
+            #if FASTFILE_REGEX != 0
                 getnewline(false),
                 hasinitializedmonsterregex(false),
             #endif
@@ -118,6 +130,33 @@ struct FastFile {
             }
             else {
                 hasinitializedmonsterregex = true;
+            }
+
+        #elif FASTFILE_REGEX == 2
+            int errorcode;
+            PCRE2_SIZE erroffset;
+
+            unused_match_data = pcre2_match_data_create( 1, NULL );
+            monsterregex = pcre2_compile( reinterpret_cast<PCRE2_SPTR>( rawregex ),
+                    PCRE2_ZERO_TERMINATED, PCRE2_UTF, &errorcode, &erroffset, NULL );
+
+            if( monsterregex == NULL ) {
+                hasinitializedmonsterregex = true;
+                PCRE2_UCHAR8 errorbuffer[1024];
+                int errormessageresult = pcre2_get_error_message( errorcode, errorbuffer, sizeof( errorbuffer ) );
+
+                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                        << filepath << " & " << rawregex;
+
+                if( errormessageresult < 1 ) {
+                        std::cerr << ", error==" << errorcode;
+                }
+                else {
+                    std::cerr << ", error==" << errorcode << ", " << readline;
+                }
+
+                std::cerr << ", on position==" << erroffset << "'!" << std::endl;
+                return;
             }
         #endif
 
@@ -218,10 +257,16 @@ struct FastFile {
             readline = NULL;
         }
 
-    #if FASTFILE_REGEX == 1
+    #if FASTFILE_REGEX != 0
         if( hasinitializedmonsterregex ) {
             hasinitializedmonsterregex = false;
+
+        #if FASTFILE_REGEX == 1
             regfree( &monsterregex );
+
+        #elif FASTFILE_REGEX == 2
+            pcre2_code_free( monsterregex );
+        #endif
         }
     #endif
 
@@ -327,9 +372,17 @@ struct FastFile {
         {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
-            #if FASTFILE_REGEX == 1
+            #if FASTFILE_REGEX != 0
                 if( !getnewline
-                    || regexec( &monsterregex, readline, 0, NULL, 0 ) != REG_NOMATCH )
+                    ||
+                #if FASTFILE_REGEX == 1
+                    regexec( &monsterregex, readline, 0, NULL, 0 ) != REG_NOMATCH
+
+                #elif FASTFILE_REGEX == 2
+                    pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ),
+                            PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1
+                #endif
+                    )
                 {
                     getnewline = false;
             #endif
@@ -350,10 +403,18 @@ struct FastFile {
                     // linecache.push_back( emtpycacheobject );
                     LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
                     return true;
-            #if FASTFILE_REGEX == 1
-                }
 
-                LOG( 1, "regexresult: %s readline %p charsread %d '%s'", regexec( &monsterregex, readline, 0, NULL, 0 ), readline, charsread, readline );
+            #if FASTFILE_REGEX != 0
+                }
+                LOG( 1, "regexresult: %s readline %p charsread %d '%s'",
+                    #if FASTFILE_REGEX == 1
+                        regexec( &monsterregex, readline, 0, NULL, 0 )
+
+                    #elif FASTFILE_REGEX == 2
+                        pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ),
+                                PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL )
+                    #endif
+                        , readline, charsread, readline );
             #endif
             }
             else {
@@ -396,7 +457,7 @@ struct FastFile {
     bool next() {
         currentline = -1;
 
-    #if FASTFILE_REGEX == 1
+    #if FASTFILE_REGEX != 0
         getnewline = true;
     #endif
         if( linecache.size() ) {
@@ -415,15 +476,21 @@ struct FastFile {
         currentline += 1;
         LOG( 1, "linecache.size %zd linecount %llu currentline %llu", linecache.size(), linecount, currentline );
 
-    #if FASTFILE_REGEX == 1
+    #if FASTFILE_REGEX != 0
         if( getnewline ) {
             long int popfrontcount = 0;
             const char* cppline;
 
             for( PyObject* pyobject : linecache ) {
                 cppline = PyUnicode_AsUTF8( pyobject );
+            #if FASTFILE_REGEX == 1
+                if( regexec( &monsterregex, cppline, 0, NULL, 0 ) != REG_NOMATCH )
 
-                if( regexec( &monsterregex, cppline, 0, NULL, 0 ) != REG_NOMATCH ) {
+            #elif FASTFILE_REGEX == 2
+                if( pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( cppline ),
+                        PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1 )
+            #endif
+                {
                     break;
                 }
                 else {
@@ -440,7 +507,7 @@ struct FastFile {
 
         if( currentline < static_cast<long long int>( linecache.size() ) )
         {
-        #if FASTFILE_REGEX == 1
+        #if FASTFILE_REGEX != 0
             getnewline = false;
         #endif
             return linecache[currentline];

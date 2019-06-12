@@ -91,6 +91,9 @@ class build_ext_compiler_check(build_ext):
                         extension.extra_compile_args.append( '/Od' )
                         extension.extra_compile_args.append( '/Z7' )
 
+                        extension.extra_link_args.append( '/Od' )
+                        extension.extra_link_args.append( '/Z7' )
+
                 else:
 
                     if debug_variable_value:
@@ -98,8 +101,18 @@ class build_ext_compiler_check(build_ext):
                         extension.extra_compile_args.append( '-g' )
                         extension.extra_compile_args.append( '-ggdb' )
 
+                        extension.extra_link_args.append( '-O0' )
+                        extension.extra_link_args.append( '-g' )
+                        extension.extra_link_args.append( '-ggdb' )
+
                     extension.extra_compile_args.append( '-std=c++11' )
                     extension.extra_compile_args.append( '-fstack-protector-all' )
+
+                    extension.extra_link_args.append( '-std=c++11' )
+                    extension.extra_link_args.append( '-fstack-protector-all' )
+
+                if regex_variable_value == 2:
+                        extension.libraries.append( 'pcre2-8' )
 
         super().build_extensions()
 
