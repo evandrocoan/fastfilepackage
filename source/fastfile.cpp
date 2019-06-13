@@ -513,16 +513,19 @@ struct FastFile {
 
             for( PyObject* pyobject : linecache ) {
                 cppline = PyUnicode_AsUTF8( pyobject );
+
+                if(
             #if FASTFILE_REGEX == 1
-                if( regexec( &monsterregex, cppline, 0, NULL, 0 ) != REG_NOMATCH )
+                    regexec( &monsterregex, cppline, 0, NULL, 0 ) != REG_NOMATCH
 
             #elif FASTFILE_REGEX == 2
-                if( pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( cppline ),
-                        PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1 )
+                    pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( cppline ),
+                            PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1
 
             #elif FASTFILE_REGEX == 3
-                if( RE2::PartialMatch( cppline, *monsterregex ) )
+                    RE2::PartialMatch( cppline, *monsterregex )
             #endif
+                    )
                 {
                     break;
                 }
