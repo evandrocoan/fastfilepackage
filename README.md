@@ -68,8 +68,8 @@ Do not define this variable or define it as `FASTFILE_REGEX=0` to disable the op
    ```
 
 Notes:
- * Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set.
-   If the variable `FASTFILE_GETLINE` is not defined,
+ * Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set (as/with value 2).
+   If the variable `FASTFILE_GETLINE=2` is not defined (as/with value 2),
    any definition of `FASTFILE_REGEX` is ignored.
 
 
