@@ -69,6 +69,7 @@ static PyObject* PyFastFile_tp_iter(PyFastFile* self, PyObject* args)
 static PyObject* PyFastFile_iternext(PyFastFile* self, PyObject* args)
 {
     if( !( (self->cppobjectpointer)->next() ) ) {
+        // uncomment this to see why this function is stopping
         // PyErr_Print();
         // PyErr_Clear();
         // PyErr_SetNone( PyExc_StopIteration );

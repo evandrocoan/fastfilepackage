@@ -19,17 +19,20 @@
 
     #else
         #if defined(__unix__)
-            #define USE_POSIX_GETLINE
+            #define FASTFILE_USE_POSIX_GETLINE
 
             #if FASTFILE_GETLINE == 1
-                #undef USE_POSIX_GETLINE
+                #undef FASTFILE_USE_POSIX_GETLINE
             #endif
+
+        #elif defined(FASTFILE_USE_POSIX_GETLINE)
+            #undef FASTFILE_USE_POSIX_GETLINE
         #endif
     #endif
 #endif
 
 
-#if !defined(FASTFILE_REGEX) || !defined(FASTFILE_GETLINE) || !defined(USE_POSIX_GETLINE) || FASTFILE_GETLINE != 2
+#if !defined(FASTFILE_REGEX) || !defined(FASTFILE_GETLINE) || !defined(FASTFILE_USE_POSIX_GETLINE) || FASTFILE_GETLINE != 2
     #undef FASTFILE_REGEX
     #define FASTFILE_REGEX 0
 
@@ -94,7 +97,7 @@ struct FastFile {
         #endif
     #endif
 
-    #ifdef USE_POSIX_GETLINE
+    #ifdef FASTFILE_USE_POSIX_GETLINE
         FILE* cfilestream;
 
     #else
@@ -142,7 +145,7 @@ struct FastFile {
             return;
         }
 
-    #ifdef USE_POSIX_GETLINE
+    #ifdef FASTFILE_USE_POSIX_GETLINE
 
         #if FASTFILE_REGEX == 1
             int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
@@ -336,7 +339,7 @@ struct FastFile {
         }
     #endif
 
-        #ifdef USE_POSIX_GETLINE
+        #ifdef FASTFILE_USE_POSIX_GETLINE
             if( cfilestream != NULL ) {
                 fclose( cfilestream );
                 cfilestream = NULL;
@@ -431,7 +434,7 @@ struct FastFile {
         if( hasfinished ) { return false; }
 
 #if defined(FASTFILE_GETLINE)
-    #ifdef USE_POSIX_GETLINE
+    #ifdef FASTFILE_USE_POSIX_GETLINE
         ssize_t charsread;
 
         while( true )
@@ -526,7 +529,7 @@ struct FastFile {
         }
 #endif
 
-        // PyErr_PrintEx(100);
+        // PyErr_PrintEx(100); // uncomment this to see why this function is stopping
         PyErr_Clear();
         hasfinished = true;
         return false;
@@ -543,10 +546,10 @@ struct FastFile {
             linecache.pop_front();
             return true;
         }
-        bool boolline = _getline();
+        bool hasnextline = _getline();
 
-        LOG( 1, "boolline: %d linecount %llu currentline %llu", boolline, linecount, currentline );
-        return boolline;
+        LOG( 1, "hasnextline: %d linecount %llu currentline %llu", hasnextline, linecount, currentline );
+        return hasnextline;
     }
 
     PyObject* call()
