@@ -66,6 +66,9 @@ Do not define this variable or define it as `FASTFILE_REGEX=0` to disable the op
    sudo make install &&
    make testinstall
    ```
+1. `FASTFILE_REGEX=4` will use Hyperscan regex library `hs.h`:
+   https://github.com/intel/hyperscan,
+   it requires the installation of the `libhyperscan-dev` package with `sudo apt-get install libhyperscan-dev`
 
 Notes:
  * Defining the variable `FASTFILE_REGEX` only has effect when `FASTFILE_GETLINE=2` is set (as/with value 2).

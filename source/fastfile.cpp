@@ -43,6 +43,19 @@
 
     #elif FASTFILE_REGEX == 3
         #include <re2/re2.h>
+
+    #elif FASTFILE_REGEX == 4
+        #include <hs.h>
+
+        static int HS_CDECL null_onEvent(
+                unsigned id,
+                unsigned long long from,
+                unsigned long long to,
+                unsigned flags,
+                void *ctxt)
+        {
+            return 1;
+        }
     #endif
 #endif
 
@@ -74,6 +87,10 @@ struct FastFile {
         #elif FASTFILE_REGEX == 3
             RE2* monsterregex;
             RE2::Options myglobaloptions;
+
+        #elif FASTFILE_REGEX == 4
+            hs_scratch_t *scratchspace = NULL;
+            hs_database_t *monsterregex;
         #endif
     #endif
 
@@ -179,6 +196,27 @@ struct FastFile {
                         << ", error==" << monsterregex->error() << "'!" << std::endl;
                 return;
             }
+
+        #elif FASTFILE_REGEX == 4
+            hs_compile_error_t *compile_err;
+
+            if( hs_compile( rawregex, HS_FLAG_SINGLEMATCH | HS_FLAG_DOTALL, HS_MODE_BLOCK, NULL, &monsterregex,
+                           &compile_err ) != HS_SUCCESS )
+            {
+                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                        << filepath << " & " << rawregex
+                        << ", error==" << compile_err->message << "'!" << std::endl;
+                hs_free_compile_error( compile_err );
+                return;
+            }
+
+            if( hs_alloc_scratch( monsterregex, &scratchspace ) != HS_SUCCESS ) {
+                std::cerr << "ERROR: FastFile failed to allocate scratch space for '"
+                        << filepath << " & " << rawregex << "'!" << std::endl;
+                return;
+            }
+
+            hasinitializedmonsterregex = true;
         #endif
 
         cfilestream = fopen( filepath, "r" );
@@ -290,6 +328,10 @@ struct FastFile {
 
         #elif FASTFILE_REGEX == 3
             delete monsterregex;
+
+        #elif FASTFILE_REGEX == 4
+            hs_free_scratch( scratchspace );
+            hs_free_database( monsterregex );
         #endif
         }
     #endif
@@ -408,6 +450,9 @@ struct FastFile {
 
                 #elif FASTFILE_REGEX == 3
                     RE2::PartialMatch( readline, *monsterregex )
+
+                #elif FASTFILE_REGEX == 4
+                    hs_scan( monsterregex, readline, charsread, 0, scratchspace, null_onEvent, NULL ) == HS_SCAN_TERMINATED
                 #endif
                     )
                 {
@@ -443,6 +488,9 @@ struct FastFile {
 
                     #elif FASTFILE_REGEX == 3
                         RE2::PartialMatch( readline, *monsterregex )
+
+                    #elif FASTFILE_REGEX == 4
+                        hs_scan( monsterregex, readline, charsread, 0, scratchspace, null_onEvent, NULL )
                     #endif
                         , readline, charsread, readline );
             #endif
@@ -508,11 +556,12 @@ struct FastFile {
 
     #if FASTFILE_REGEX != 0
         if( getnewline ) {
+            Py_ssize_t charsread;
             long int popfrontcount = 0;
             const char* cppline;
 
             for( PyObject* pyobject : linecache ) {
-                cppline = PyUnicode_AsUTF8( pyobject );
+                cppline = PyUnicode_AsUTF8AndSize( pyobject, &charsread );
 
                 if(
             #if FASTFILE_REGEX == 1
@@ -524,6 +573,9 @@ struct FastFile {
 
             #elif FASTFILE_REGEX == 3
                     RE2::PartialMatch( cppline, *monsterregex )
+
+            #elif FASTFILE_REGEX == 4
+                    hs_scan( monsterregex, cppline, charsread, 0, scratchspace, null_onEvent, NULL ) == HS_SCAN_TERMINATED
             #endif
                     )
                 {

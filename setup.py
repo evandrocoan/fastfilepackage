@@ -117,6 +117,10 @@ class build_ext_compiler_check(build_ext):
                 if regex_variable_value == 3:
                         extension.libraries.append( 're2' )
 
+                if regex_variable_value == 4:
+                        extension.libraries.append( 'hs' )
+                        extension.include_dirs.append( '/usr/include/hs' )
+
         super().build_extensions()
 
 
