@@ -32,6 +32,12 @@
 #endif
 
 
+#define FASTFILE_REGEX_DISABLED  0
+#define FASTFILE_REGEX_C_ENGINE  1
+#define FASTFILE_REGEX_PCRE2     2
+#define FASTFILE_REGEX_RE2       3
+#define FASTFILE_REGEX_HYPERSCAN 4
+
 #if !defined(FASTFILE_REGEX) || !defined(FASTFILE_GETLINE) || !defined(FASTFILE_USE_POSIX_GETLINE) || FASTFILE_GETLINE != 2
     #undef FASTFILE_REGEX
     #define FASTFILE_REGEX 0
@@ -45,7 +51,7 @@
     #define STANDARDERRORMESSAGEDETAILS \
             LOG( 1, "regexresult: %s readline %p charsread %d '%s'", returncode, readline, charsread, readline );
 
-    #if FASTFILE_REGEX == 1
+    #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
         #include <regex.h>
         #define REGEXMATCHFUNCTION \
                 ( ( returncode = regexec( &monsterregex, readline, 0, NULL, 0 ) ) != REG_NOMATCH )
@@ -53,7 +59,7 @@
         #define REGEXERRORFUNCTION \
                 STANDARDERRORMESSAGEDETAILS
 
-    #elif FASTFILE_REGEX == 2
+    #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
         #define PCRE2_CODE_UNIT_WIDTH 8
         #include <pcre2.h>
         #define REGEXMATCHFUNCTION \
@@ -66,7 +72,7 @@
                 } \
                 STANDARDERRORMESSAGEDETAILS
 
-    #elif FASTFILE_REGEX == 3
+    #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
         #include <re2/re2.h>
         #define REGEXMATCHFUNCTION \
                 ( returncode = RE2::PartialMatch( readline, *monsterregex ) )
@@ -74,7 +80,7 @@
         #define REGEXERRORFUNCTION \
                 STANDARDERRORMESSAGEDETAILS
 
-    #elif FASTFILE_REGEX == 4
+    #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
         #include <hs.h>
         #define REGEXMATCHFUNCTION \
                 ( ( returncode = hs_scan( \
@@ -113,22 +119,22 @@ struct FastFile {
     char* readline;
     size_t linebuffersize;
 
-    #if FASTFILE_REGEX != 0
+    #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         bool getnewline;
         bool hasinitializedmonsterregex;
 
-        #if FASTFILE_REGEX == 1
+        #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
             regex_t monsterregex;
 
-        #elif FASTFILE_REGEX == 2
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
             pcre2_code* monsterregex;
             pcre2_match_data* unused_match_data;
 
-        #elif FASTFILE_REGEX == 3
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
             RE2* monsterregex;
             RE2::Options myglobaloptions;
 
-        #elif FASTFILE_REGEX == 4
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
             hs_scratch_t *scratchspace = NULL;
             hs_database_t *monsterregex;
         #endif
@@ -155,7 +161,7 @@ struct FastFile {
                 hasclosed(false),
                 hasfinished(false),
 
-            #if FASTFILE_REGEX != 0
+            #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 getnewline(false),
                 hasinitializedmonsterregex(false),
             #endif
@@ -185,7 +191,7 @@ struct FastFile {
 
     #ifdef FASTFILE_USE_POSIX_GETLINE
 
-        #if FASTFILE_REGEX == 1
+        #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
             int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
 
             if( rawresultregex ) {
@@ -197,7 +203,7 @@ struct FastFile {
                 hasinitializedmonsterregex = true;
             }
 
-        #elif FASTFILE_REGEX == 2
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
             int errorcode;
             PCRE2_SIZE erroffset;
 
@@ -224,7 +230,7 @@ struct FastFile {
                 return;
             }
 
-        #elif FASTFILE_REGEX == 3
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
             // myglobaloptions.set_posix_syntax(true);
             monsterregex = new RE2(rawregex, myglobaloptions);
 
@@ -238,7 +244,7 @@ struct FastFile {
                 return;
             }
 
-        #elif FASTFILE_REGEX == 4
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
             hs_compile_error_t *compile_err;
 
             if( hs_compile( rawregex, HS_FLAG_SINGLEMATCH | HS_FLAG_DOTALL, HS_MODE_BLOCK, NULL, &monsterregex,
@@ -357,20 +363,20 @@ struct FastFile {
             readline = NULL;
         }
 
-    #if FASTFILE_REGEX != 0
+    #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         if( hasinitializedmonsterregex ) {
             hasinitializedmonsterregex = false;
 
-        #if FASTFILE_REGEX == 1
+        #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
             regfree( &monsterregex );
 
-        #elif FASTFILE_REGEX == 2
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
             pcre2_code_free( monsterregex );
 
-        #elif FASTFILE_REGEX == 3
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
             delete monsterregex;
 
-        #elif FASTFILE_REGEX == 4
+        #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
             hs_free_scratch( scratchspace );
             hs_free_database( monsterregex );
         #endif
@@ -474,7 +480,7 @@ struct FastFile {
 #if defined(FASTFILE_GETLINE)
     #ifdef FASTFILE_USE_POSIX_GETLINE
 
-        #if FASTFILE_REGEX != 0
+        #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
             int returncode;
         #endif
         ssize_t charsread;
@@ -483,7 +489,7 @@ struct FastFile {
         {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
-            #if FASTFILE_REGEX != 0
+            #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 if( !getnewline || REGEXMATCHFUNCTION )
                 {
                     getnewline = false;
@@ -506,7 +512,7 @@ struct FastFile {
                     LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
                     return true;
 
-            #if FASTFILE_REGEX != 0
+            #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 }
 
                 REGEXERRORFUNCTION
@@ -552,7 +558,7 @@ struct FastFile {
     bool next() {
         currentline = -1;
 
-    #if FASTFILE_REGEX != 0
+    #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         getnewline = true;
     #endif
         if( linecache.size() ) {
@@ -571,7 +577,7 @@ struct FastFile {
         currentline += 1;
         LOG( 1, "linecache.size %zd linecount %llu currentline %llu", linecache.size(), linecount, currentline );
 
-    #if FASTFILE_REGEX != 0
+    #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         if( getnewline ) {
             Py_ssize_t charsread;
             long int popfrontcount = 0;
@@ -599,7 +605,7 @@ struct FastFile {
 
         if( currentline < static_cast<long long int>( linecache.size() ) )
         {
-        #if FASTFILE_REGEX != 0
+        #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
             getnewline = false;
         #endif
             return linecache[currentline];
