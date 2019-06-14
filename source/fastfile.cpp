@@ -119,6 +119,7 @@ struct FastFile {
     char* readline;
     char* fixedreadline;
     size_t linebuffersize;
+    size_t initialbufersize;
 
     #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         bool getnewline;
@@ -182,6 +183,7 @@ struct FastFile {
 
 #if defined(FASTFILE_GETLINE)
         linebuffersize = 131072;
+        initialbufersize = linebuffersize;
         readline = (char*) malloc( linebuffersize );
         fixedreadline = (char*) malloc( linebuffersize );
 
@@ -504,13 +506,30 @@ struct FastFile {
         {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
+                if( initialbufersize != linebuffersize ) {
+                    char* reallocresult = (char*) malloc( linebuffersize );
+
+                    if( reallocresult == NULL ) {
+                        charsread = initialbufersize;
+                        LOG( 1, "ERROR: FastFile failed to alocate internal for reallocresult '%s' new size '%s' old size '%s'",
+                                filepath, linebuffersize, initialbufersize );
+                    }
+                    else {
+                        LOG( 1, "Alocating internal line buffer for reallocresult '%s' new size '%s' old size '%s'",
+                                filepath, linebuffersize, initialbufersize );
+
+                        free( fixedreadline );
+                        fixedreadline = reallocresult;
+                        initialbufersize = linebuffersize;
+                    }
+                }
+
                 // https://stackoverflow.com/questions/56604934/how-to-remove-the-uft8-character-from-a-char-string
                 invalidcharsoffset = 0;
-                for( index = 0; index < charsread; ++index )
-                {
-                    std::cerr << readline[index] << std::endl;
+                for( index = 0; index < charsread; ++index ) {
+                    // std::cerr << "char=" << readline[index] << "->" << static_cast<unsigned int>( readline[index] ) << std::endl;
 
-                    if( readline[index] != '�' ) {
+                    if( static_cast<unsigned int>( readline[index] ) < 256 ) {
                         fixedreadline[index-invalidcharsoffset] = readline[index];
                     }
                     else {
