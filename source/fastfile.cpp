@@ -575,7 +575,7 @@ struct FastFile {
             linecount += 1;
             fileifstream.getline( readline, linebuffersize );
 
-            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, fileifstream.gcount(), "replace" );
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, fileifstream.gcount(), "ignore" );
             linecache.push_back( pythonobject );
 
             // Py_XINCREF( emtpycacheobject );
