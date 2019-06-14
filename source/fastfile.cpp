@@ -117,6 +117,7 @@ struct FastFile {
 
 #if defined(FASTFILE_GETLINE)
     char* readline;
+    char* fixedreadline;
     size_t linebuffersize;
 
     #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
@@ -182,9 +183,16 @@ struct FastFile {
 #if defined(FASTFILE_GETLINE)
         linebuffersize = 131072;
         readline = (char*) malloc( linebuffersize );
+        fixedreadline = (char*) malloc( linebuffersize );
 
         if( readline == NULL ) {
-            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for '"
+            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for readline '"
+                    << filepath << "'!" << std::endl;
+            return;
+        }
+
+        if( fixedreadline == NULL ) {
+            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for fixedreadline '"
                     << filepath << "'!" << std::endl;
             return;
         }
@@ -363,6 +371,11 @@ struct FastFile {
             readline = NULL;
         }
 
+        if( fixedreadline ) {
+            free( fixedreadline );
+            fixedreadline = NULL;
+        }
+
     #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         if( hasinitializedmonsterregex ) {
             hasinitializedmonsterregex = false;
@@ -484,11 +497,26 @@ struct FastFile {
             int returncode;
         #endif
         ssize_t charsread;
+        int index;
+        int invalidcharsoffset;
 
         while( true )
         {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
+                // https://stackoverflow.com/questions/56604934/how-to-remove-the-uft8-character-from-a-char-string
+                invalidcharsoffset = 0;
+                for( index = 0; index < charsread; ++index )
+                {
+                    std::cerr << readline[index] << std::endl;
+
+                    if( readline[index] != '�' ) {
+                        fixedreadline[index-invalidcharsoffset] = readline[index];
+                    }
+                    else {
+                        ++invalidcharsoffset;
+                    }
+                }
             #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 if( !getnewline || REGEXMATCHFUNCTION )
                 {
@@ -497,19 +525,19 @@ struct FastFile {
                     --charsread;
                     linecount += 1;
 
-                    if( readline[charsread] == '\n' ) {
-                        readline[charsread] = '\0';
+                    if( fixedreadline[charsread] == '\n' ) {
+                        fixedreadline[charsread] = '\0';
                     }
                     else {
                         ++charsread;
                     }
 
-                    PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
+                    PyObject* pythonobject = PyUnicode_DecodeUTF8( fixedreadline, charsread, "replace" );
                     linecache.push_back( pythonobject );
 
                     // Py_XINCREF( emtpycacheobject );
                     // linecache.push_back( emtpycacheobject );
-                    LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
+                    LOG( 1, "linecount %llu currentline %llu fixedreadline '%p' '%s'", linecount, currentline, pythonobject, fixedreadline );
                     return true;
 
             #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
