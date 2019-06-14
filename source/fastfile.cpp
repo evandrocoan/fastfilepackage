@@ -223,7 +223,7 @@ struct FastFile {
                         std::cerr << ", error==" << errorcode;
                 }
                 else {
-                    std::cerr << ", error==" << errorcode << ", " << readline;
+                    std::cerr << ", error==" << errorcode << ", " << errorbuffer;
                 }
 
                 std::cerr << ", on position==" << erroffset << "'!" << std::endl;
