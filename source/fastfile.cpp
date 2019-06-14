@@ -37,18 +37,55 @@
     #define FASTFILE_REGEX 0
 
 #else
+    #define STANDARDERRORMESSAGE \
+            std::cerr << "ERROR: FastFile match failed the following returncode='" \
+                    << returncode << "' file='" \
+                    << filepath <<  "' line='" << readline << "'!" << std::endl; \
+
+    #define STANDARDERRORMESSAGEDETAILS \
+            LOG( 1, "regexresult: %s readline %p charsread %d '%s'", returncode, readline, charsread, readline );
+
     #if FASTFILE_REGEX == 1
         #include <regex.h>
+        #define REGEXMATCHFUNCTION \
+                ( ( returncode = regexec( &monsterregex, readline, 0, NULL, 0 ) ) != REG_NOMATCH )
+
+        #define REGEXERRORFUNCTION \
+                STANDARDERRORMESSAGEDETAILS
 
     #elif FASTFILE_REGEX == 2
         #define PCRE2_CODE_UNIT_WIDTH 8
         #include <pcre2.h>
+        #define REGEXMATCHFUNCTION \
+                ( ( returncode = pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ), \
+                        PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) ) > -1 )
+
+        #define REGEXERRORFUNCTION \
+                if( returncode < -2 ) { \
+                    STANDARDERRORMESSAGE \
+                } \
+                STANDARDERRORMESSAGEDETAILS
 
     #elif FASTFILE_REGEX == 3
         #include <re2/re2.h>
+        #define REGEXMATCHFUNCTION \
+                ( returncode = RE2::PartialMatch( readline, *monsterregex ) )
+
+        #define REGEXERRORFUNCTION \
+                STANDARDERRORMESSAGEDETAILS
 
     #elif FASTFILE_REGEX == 4
         #include <hs.h>
+        #define REGEXMATCHFUNCTION \
+                ( ( returncode = hs_scan( \
+                        monsterregex, readline, charsread, 0, scratchspace, null_onEvent, NULL \
+                        ) ) == HS_SCAN_TERMINATED )
+
+        #define REGEXERRORFUNCTION \
+                if( returncode < 0 ) { \
+                    STANDARDERRORMESSAGE \
+                } \
+                STANDARDERRORMESSAGEDETAILS
 
         static int HS_CDECL null_onEvent(
                 unsigned id,
@@ -125,9 +162,10 @@ struct FastFile {
                 linecount(0),
                 currentline(-1)
     {
-        LOG( 1, "Constructor with filepath=%s rawregex=%s", filepath, rawregex );
-        emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
+        LOG( 1, "Constructor with:\nFASTFILE_GETLINE=%s\nFASTFILE_REGEX=%s\nfilepath=%s\nrawregex=%s",
+                FASTFILE_GETLINE, FASTFILE_REGEX, filepath, rawregex );
 
+        emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
         if( emtpycacheobject == NULL ) {
             std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
                     << filepath << "')!" << std::endl;
@@ -435,6 +473,10 @@ struct FastFile {
 
 #if defined(FASTFILE_GETLINE)
     #ifdef FASTFILE_USE_POSIX_GETLINE
+
+        #if FASTFILE_REGEX != 0
+            int returncode;
+        #endif
         ssize_t charsread;
 
         while( true )
@@ -442,22 +484,7 @@ struct FastFile {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
             #if FASTFILE_REGEX != 0
-                if( !getnewline
-                    ||
-                #if FASTFILE_REGEX == 1
-                    regexec( &monsterregex, readline, 0, NULL, 0 ) != REG_NOMATCH
-
-                #elif FASTFILE_REGEX == 2
-                    pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ),
-                            PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1
-
-                #elif FASTFILE_REGEX == 3
-                    RE2::PartialMatch( readline, *monsterregex )
-
-                #elif FASTFILE_REGEX == 4
-                    hs_scan( monsterregex, readline, charsread, 0, scratchspace, null_onEvent, NULL ) == HS_SCAN_TERMINATED
-                #endif
-                    )
+                if( !getnewline || REGEXMATCHFUNCTION )
                 {
                     getnewline = false;
             #endif
@@ -481,21 +508,8 @@ struct FastFile {
 
             #if FASTFILE_REGEX != 0
                 }
-                LOG( 1, "regexresult: %s readline %p charsread %d '%s'",
-                    #if FASTFILE_REGEX == 1
-                        regexec( &monsterregex, readline, 0, NULL, 0 )
 
-                    #elif FASTFILE_REGEX == 2
-                        pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( readline ),
-                                PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL )
-
-                    #elif FASTFILE_REGEX == 3
-                        RE2::PartialMatch( readline, *monsterregex )
-
-                    #elif FASTFILE_REGEX == 4
-                        hs_scan( monsterregex, readline, charsread, 0, scratchspace, null_onEvent, NULL )
-                    #endif
-                        , readline, charsread, readline );
+                REGEXERRORFUNCTION
             #endif
             }
             else {
@@ -561,32 +575,19 @@ struct FastFile {
         if( getnewline ) {
             Py_ssize_t charsread;
             long int popfrontcount = 0;
-            const char* cppline;
+
+            int returncode;
+            const char* readline;
 
             for( PyObject* pyobject : linecache ) {
-                cppline = PyUnicode_AsUTF8AndSize( pyobject, &charsread );
+                readline = PyUnicode_AsUTF8AndSize( pyobject, &charsread );
 
-                if(
-            #if FASTFILE_REGEX == 1
-                    regexec( &monsterregex, cppline, 0, NULL, 0 ) != REG_NOMATCH
-
-            #elif FASTFILE_REGEX == 2
-                    pcre2_match( monsterregex, reinterpret_cast<PCRE2_SPTR>( cppline ),
-                            PCRE2_ZERO_TERMINATED, 0, PCRE2_NO_UTF_CHECK, unused_match_data, NULL ) > -1
-
-            #elif FASTFILE_REGEX == 3
-                    RE2::PartialMatch( cppline, *monsterregex )
-
-            #elif FASTFILE_REGEX == 4
-                    hs_scan( monsterregex, cppline, charsread, 0, scratchspace, null_onEvent, NULL ) == HS_SCAN_TERMINATED
-            #endif
-                    )
-                {
+                if( REGEXMATCHFUNCTION ) {
                     break;
                 }
-                else {
-                    ++popfrontcount;
-                }
+
+                REGEXERRORFUNCTION
+                ++popfrontcount;
             }
 
             while( popfrontcount-- ) {
