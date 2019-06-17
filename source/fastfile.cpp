@@ -117,7 +117,6 @@ struct FastFile {
 
 #if defined(FASTFILE_GETLINE)
     char* readline;
-    char* fixedreadline;
     size_t linebuffersize;
     size_t initialbufersize;
 
@@ -185,16 +184,9 @@ struct FastFile {
         linebuffersize = 131072;
         initialbufersize = linebuffersize;
         readline = (char*) malloc( linebuffersize );
-        fixedreadline = (char*) malloc( linebuffersize );
 
         if( readline == NULL ) {
             std::cerr << "ERROR: FastFile failed to alocate internal line buffer for readline '"
-                    << filepath << "'!" << std::endl;
-            return;
-        }
-
-        if( fixedreadline == NULL ) {
-            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for fixedreadline '"
                     << filepath << "'!" << std::endl;
             return;
         }
@@ -373,11 +365,6 @@ struct FastFile {
             readline = NULL;
         }
 
-        if( fixedreadline ) {
-            free( fixedreadline );
-            fixedreadline = NULL;
-        }
-
     #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         if( hasinitializedmonsterregex ) {
             hasinitializedmonsterregex = false;
@@ -498,65 +485,55 @@ struct FastFile {
         #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
             int returncode;
         #endif
+        char* source;
+        char* lineend;
+        char* destination;
+
         ssize_t charsread;
-        int index;
-        int invalidcharsoffset;
+        unsigned int fixedchar;
 
         while( true )
         {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
-                if( initialbufersize != linebuffersize ) {
-                    char* reallocresult = (char*) malloc( linebuffersize );
-
-                    if( reallocresult == NULL ) {
-                        charsread = initialbufersize;
-                        LOG( 1, "ERROR: FastFile failed to alocate internal for reallocresult '%s' new size '%s' old size '%s'",
-                                filepath, linebuffersize, initialbufersize );
-                    }
-                    else {
-                        LOG( 1, "Alocating internal line buffer for reallocresult '%s' new size '%s' old size '%s'",
-                                filepath, linebuffersize, initialbufersize );
-
-                        free( fixedreadline );
-                        fixedreadline = reallocresult;
-                        initialbufersize = linebuffersize;
-                    }
-                }
-
                 // https://stackoverflow.com/questions/56604934/how-to-remove-the-uft8-character-from-a-char-string
-                invalidcharsoffset = 0;
-                for( index = 0; index < charsread; ++index ) {
-                    // std::cerr << "char=" << readline[index] << "->" << static_cast<unsigned int>( readline[index] ) << std::endl;
-
-                    if( static_cast<unsigned int>( readline[index] ) < 256 ) {
-                        fixedreadline[index-invalidcharsoffset] = readline[index];
+                lineend = readline + charsread;
+                destination = readline;
+                for( source = readline; source != lineend; ++source )
+                {
+                    fixedchar = static_cast<unsigned int>( *source );
+                    if( 31 < fixedchar && fixedchar < 128 ) {
+                        *destination = *source;
+                        ++destination;
                     }
                     else {
-                        ++invalidcharsoffset;
+                        --charsread;
                     }
                 }
+                --charsread;
+
+                // Trim out the new line character
+                if( readline[charsread] == '\n' ) {
+                    readline[charsread] = '\0';
+                }
+                else {
+                    ++charsread;
+                    readline[charsread] = '\0';
+                }
+
             #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 if( !getnewline || REGEXMATCHFUNCTION )
                 {
                     getnewline = false;
             #endif
-                    --charsread;
-                    linecount += 1;
+                    ++linecount;
 
-                    if( fixedreadline[charsread] == '\n' ) {
-                        fixedreadline[charsread] = '\0';
-                    }
-                    else {
-                        ++charsread;
-                    }
-
-                    PyObject* pythonobject = PyUnicode_DecodeUTF8( fixedreadline, charsread, "replace" );
+                    PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
                     linecache.push_back( pythonobject );
 
                     // Py_XINCREF( emtpycacheobject );
                     // linecache.push_back( emtpycacheobject );
-                    LOG( 1, "linecount %llu currentline %llu fixedreadline '%p' '%s'", linecount, currentline, pythonobject, fixedreadline );
+                    LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
                     return true;
 
             #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
