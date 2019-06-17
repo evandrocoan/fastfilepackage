@@ -10,25 +10,70 @@
 #include <fstream>
 #include <deque>
 
+#define FASTFILE_GETLINE_DISABLED     0
+#define FASTFILE_GETLINE_STDGETLINE   1
+#define FASTFILE_GETLINE_POSIXGETLINE 2
+
+#if !defined(FASTFILE_GETLINE)
+    #define FASTFILE_GETLINE 0
+#endif
+
 // https://stackoverflow.com/questions/56260096/how-to-improve-python-c-extensions-file-line-reading
 // https://stackoverflow.com/questions/17237545/preprocessor-check-if-multiple-defines-are-not-defined
-#if defined(FASTFILE_GETLINE)
-
-    #if FASTFILE_GETLINE == 0
+#if !defined(__unix__)
+    #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
         #undef FASTFILE_GETLINE
-
-    #else
-        #if defined(__unix__)
-            #define FASTFILE_USE_POSIX_GETLINE
-
-            #if FASTFILE_GETLINE == 1
-                #undef FASTFILE_USE_POSIX_GETLINE
-            #endif
-
-        #elif defined(FASTFILE_USE_POSIX_GETLINE)
-            #undef FASTFILE_USE_POSIX_GETLINE
-        #endif
+        #define FASTFILE_GETLINE 0
     #endif
+#endif
+
+
+#define FASTFILE_UTF8CHARACTER_TRIMMING
+#define FASTFILE_TRIMUFT8_DISABLED      0
+#define FASTFILE_TRIMUFT8_PRINTABLEONLY 1
+
+#if !defined(FASTFILE_TRIMUFT8)
+    #define FASTFILE_TRIMUFT8 FASTFILE_TRIMUFT8_PRINTABLEONLY
+#endif
+
+#if FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_DISABLED
+    #define FASTFILE_ISTRIM_UFT8_DISABLED(value) value
+    #define FASTFILE_ISTRIM_UFT8_ENABLED(value)
+
+#else
+    #define FASTFILE_ISTRIM_UFT8_ENABLED(value) value
+    #define FASTFILE_ISTRIM_UFT8_DISABLED(value)
+
+#endif
+
+#define FASTFILE_NEWLINETRIMMING \
+    --charsread; \
+    if( readline[charsread] == '\n' ) { \
+        readline[charsread] = '\0'; \
+    } \
+    else { \
+        ++charsread; \
+        readline[charsread] = '\0'; \
+    }
+
+#if FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_PRINTABLEONLY
+    #undef FASTFILE_UTF8CHARACTER_TRIMMING
+
+    // https://stackoverflow.com/questions/56604934/how-to-remove-the-uft8-character-from-a-char-string
+    #define FASTFILE_UTF8CHARACTER_TRIMMING \
+        lineend = readline + charsread; \
+        destination = readline; \
+        for( source = readline; source != lineend; ++source ) \
+        { \
+            fixedchar = static_cast<unsigned int>( *source ); \
+            if( 31 < fixedchar && fixedchar < 128 ) { \
+                *destination = *source; \
+                ++destination; \
+            } \
+            else { \
+                --charsread; \
+            } \
+        }
 #endif
 
 
@@ -38,7 +83,7 @@
 #define FASTFILE_REGEX_RE2       3
 #define FASTFILE_REGEX_HYPERSCAN 4
 
-#if !defined(FASTFILE_REGEX) || !defined(FASTFILE_GETLINE) || !defined(FASTFILE_USE_POSIX_GETLINE) || FASTFILE_GETLINE != 2
+#if !defined(FASTFILE_REGEX) || FASTFILE_GETLINE != 2
     #undef FASTFILE_REGEX
     #define FASTFILE_REGEX 0
 
@@ -106,6 +151,25 @@
 #endif
 
 
+#if FASTFILE_TRIMUFT8 < 0 || FASTFILE_TRIMUFT8 > 1
+    #error The FASTFILE_TRIMUFT8 define must to be between 0 and 1!
+    #undef FASTFILE_TRIMUFT8
+    #define FASTFILE_TRIMUFT8 0
+#endif
+
+#if FASTFILE_GETLINE < 0 || FASTFILE_GETLINE > 2
+    #error The FASTFILE_GETLINE define must to be between 0 and 2!
+    #undef FASTFILE_GETLINE
+    #define FASTFILE_GETLINE 0
+#endif
+
+#if FASTFILE_REGEX < 0 || FASTFILE_REGEX > 4
+    #error The FASTFILE_REGEX define must to be between 0 and 4!
+    #undef FASTFILE_REGEX
+    #define FASTFILE_REGEX 0
+#endif
+
+
 struct FastFile {
     const char* filepath;
 
@@ -115,7 +179,11 @@ struct FastFile {
     bool hasclosed;
     bool hasfinished;
 
-#if defined(FASTFILE_GETLINE)
+#if FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
+    PyObject* iomodule;
+    PyObject* openfile;
+    PyObject* fileiterator;
+#else
     char* readline;
     size_t linebuffersize;
     size_t initialbufersize;
@@ -141,16 +209,12 @@ struct FastFile {
         #endif
     #endif
 
-    #ifdef FASTFILE_USE_POSIX_GETLINE
+    #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
         FILE* cfilestream;
 
-    #else
+    #elif FASTFILE_GETLINE == FASTFILE_GETLINE_STDGETLINE
         std::ifstream fileifstream;
     #endif
-#else
-    PyObject* iomodule;
-    PyObject* openfile;
-    PyObject* fileiterator;
 #endif
 
     long long int linecount;
@@ -169,10 +233,10 @@ struct FastFile {
                 linecount(0),
                 currentline(-1)
     {
-        LOG( 1, "Constructor with:\nFASTFILE_GETLINE=%s\nFASTFILE_REGEX=%s\nfilepath=%s\nrawregex=%s",
-                FASTFILE_GETLINE, FASTFILE_REGEX, filepath, rawregex );
+        LOG( 1, "Constructor with:\nFASTFILE_GETLINE=%s\nFASTFILE_REGEX=%s\nFASTFILE_TRIMUFT8=%s\nfilepath=%s\nrawregex=%s",
+                FASTFILE_GETLINE, FASTFILE_REGEX, FASTFILE_TRIMUFT8, filepath, rawregex );
 
-        emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "replace" );
+        emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "ignore" );
         if( emtpycacheobject == NULL ) {
             std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
                     << filepath << "')!" << std::endl;
@@ -180,108 +244,7 @@ struct FastFile {
             return;
         }
 
-#if defined(FASTFILE_GETLINE)
-        linebuffersize = 131072;
-        initialbufersize = linebuffersize;
-        readline = (char*) malloc( linebuffersize );
-
-        if( readline == NULL ) {
-            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for readline '"
-                    << filepath << "'!" << std::endl;
-            return;
-        }
-
-    #ifdef FASTFILE_USE_POSIX_GETLINE
-
-        #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
-            int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
-
-            if( rawresultregex ) {
-                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
-                        << filepath << " & " << rawregex << ", error==" << rawresultregex << "'!" << std::endl;
-                return;
-            }
-            else {
-                hasinitializedmonsterregex = true;
-            }
-
-        #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
-            int errorcode;
-            PCRE2_SIZE erroffset;
-
-            unused_match_data = pcre2_match_data_create( 1, NULL );
-            monsterregex = pcre2_compile( reinterpret_cast<PCRE2_SPTR>( rawregex ),
-                    PCRE2_ZERO_TERMINATED, PCRE2_UTF, &errorcode, &erroffset, NULL );
-
-            if( monsterregex == NULL ) {
-                hasinitializedmonsterregex = true;
-                PCRE2_UCHAR8 errorbuffer[1024];
-                int errormessageresult = pcre2_get_error_message( errorcode, errorbuffer, sizeof( errorbuffer ) );
-
-                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
-                        << filepath << " & " << rawregex;
-
-                if( errormessageresult < 1 ) {
-                        std::cerr << ", error==" << errorcode;
-                }
-                else {
-                    std::cerr << ", error==" << errorcode << ", " << errorbuffer;
-                }
-
-                std::cerr << ", on position==" << erroffset << "'!" << std::endl;
-                return;
-            }
-
-        #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
-            // myglobaloptions.set_posix_syntax(true);
-            monsterregex = new RE2(rawregex, myglobaloptions);
-
-            if( monsterregex->ok() ) {
-                hasinitializedmonsterregex = true;
-            }
-            else {
-                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
-                        << filepath << " & " << rawregex
-                        << ", error==" << monsterregex->error() << "'!" << std::endl;
-                return;
-            }
-
-        #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
-            hs_compile_error_t *compile_err;
-
-            if( hs_compile( rawregex, HS_FLAG_SINGLEMATCH | HS_FLAG_DOTALL, HS_MODE_BLOCK, NULL, &monsterregex,
-                           &compile_err ) != HS_SUCCESS )
-            {
-                std::cerr << "ERROR: FastFile failed to compile rawregex for '"
-                        << filepath << " & " << rawregex
-                        << ", error==" << compile_err->message << "'!" << std::endl;
-                hs_free_compile_error( compile_err );
-                return;
-            }
-
-            if( hs_alloc_scratch( monsterregex, &scratchspace ) != HS_SUCCESS ) {
-                std::cerr << "ERROR: FastFile failed to allocate scratch space for '"
-                        << filepath << " & " << rawregex << "'!" << std::endl;
-                return;
-            }
-
-            hasinitializedmonsterregex = true;
-        #endif
-
-        cfilestream = fopen( filepath, "r" );
-        if( cfilestream == NULL ) {
-            std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
-            return;
-        }
-    #else
-        fileifstream.open( filepath );
-
-        if( fileifstream.fail() ) {
-            std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
-            return;
-        }
-    #endif
-#else
+    #if FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
         // https://stackoverflow.com/questions/47054623/using-python3-c-api-to-add-to-builtins
         iomodule = PyImport_ImportModule( "builtins" );
 
@@ -335,7 +298,108 @@ struct FastFile {
             PyErr_PrintEx(100);
             return;
         }
-#endif
+    #else
+        linebuffersize = 131072;
+        initialbufersize = linebuffersize;
+        readline = (char*) malloc( linebuffersize );
+
+        if( readline == NULL ) {
+            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for readline '"
+                    << filepath << "'!" << std::endl;
+            return;
+        }
+
+        #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
+            cfilestream = fopen( filepath, "r" );
+            if( cfilestream == NULL ) {
+                std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
+                return;
+            }
+
+            #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
+                int rawresultregex = regcomp( &monsterregex, rawregex, REG_NOSUB | REG_EXTENDED );
+
+                if( rawresultregex ) {
+                    std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                            << filepath << " & " << rawregex << ", error==" << rawresultregex << "'!" << std::endl;
+                    return;
+                }
+                else {
+                    hasinitializedmonsterregex = true;
+                }
+
+            #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
+                int errorcode;
+                PCRE2_SIZE erroffset;
+
+                unused_match_data = pcre2_match_data_create( 1, NULL );
+                monsterregex = pcre2_compile( reinterpret_cast<PCRE2_SPTR>( rawregex ),
+                        PCRE2_ZERO_TERMINATED, PCRE2_UTF, &errorcode, &erroffset, NULL );
+
+                if( monsterregex == NULL ) {
+                    hasinitializedmonsterregex = true;
+                    PCRE2_UCHAR8 errorbuffer[1024];
+                    int errormessageresult = pcre2_get_error_message( errorcode, errorbuffer, sizeof( errorbuffer ) );
+
+                    std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                            << filepath << " & " << rawregex;
+
+                    if( errormessageresult < 1 ) {
+                            std::cerr << ", error==" << errorcode;
+                    }
+                    else {
+                        std::cerr << ", error==" << errorcode << ", " << errorbuffer;
+                    }
+
+                    std::cerr << ", on position==" << erroffset << "'!" << std::endl;
+                    return;
+                }
+
+            #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
+                // myglobaloptions.set_posix_syntax(true);
+                monsterregex = new RE2(rawregex, myglobaloptions);
+
+                if( monsterregex->ok() ) {
+                    hasinitializedmonsterregex = true;
+                }
+                else {
+                    std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                            << filepath << " & " << rawregex
+                            << ", error==" << monsterregex->error() << "'!" << std::endl;
+                    return;
+                }
+
+            #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
+                hs_compile_error_t *compile_err;
+
+                if( hs_compile( rawregex, HS_FLAG_SINGLEMATCH | HS_FLAG_DOTALL, HS_MODE_BLOCK, NULL, &monsterregex,
+                               &compile_err ) != HS_SUCCESS )
+                {
+                    std::cerr << "ERROR: FastFile failed to compile rawregex for '"
+                            << filepath << " & " << rawregex
+                            << ", error==" << compile_err->message << "'!" << std::endl;
+                    hs_free_compile_error( compile_err );
+                    return;
+                }
+
+                if( hs_alloc_scratch( monsterregex, &scratchspace ) != HS_SUCCESS ) {
+                    std::cerr << "ERROR: FastFile failed to allocate scratch space for '"
+                            << filepath << " & " << rawregex << "'!" << std::endl;
+                    return;
+                }
+
+                hasinitializedmonsterregex = true;
+            #endif
+
+        #elif FASTFILE_GETLINE == FASTFILE_GETLINE_STDGETLINE
+            fileifstream.open( filepath );
+
+            if( fileifstream.fail() ) {
+                std::cerr << "ERROR: FastFile failed to open the file '" << filepath << "'!" << std::endl;
+                return;
+            }
+        #endif
+    #endif
     }
 
     ~FastFile() {
@@ -359,43 +423,7 @@ struct FastFile {
             Py_DECREF( pyobject );
         }
 
-#if defined(FASTFILE_GETLINE)
-        if( readline ) {
-            free( readline );
-            readline = NULL;
-        }
-
-    #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
-        if( hasinitializedmonsterregex ) {
-            hasinitializedmonsterregex = false;
-
-        #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
-            regfree( &monsterregex );
-
-        #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
-            pcre2_code_free( monsterregex );
-
-        #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
-            delete monsterregex;
-
-        #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
-            hs_free_scratch( scratchspace );
-            hs_free_database( monsterregex );
-        #endif
-        }
-    #endif
-
-        #ifdef FASTFILE_USE_POSIX_GETLINE
-            if( cfilestream != NULL ) {
-                fclose( cfilestream );
-                cfilestream = NULL;
-            }
-        #else
-            if( fileifstream.is_open() ) {
-                fileifstream.close();
-            }
-        #endif
-#else
+    #if FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
         PyObject* closefunction = PyObject_GetAttrString( openfile, "close" );
 
         if( closefunction == NULL ) {
@@ -419,7 +447,44 @@ struct FastFile {
         Py_XDECREF( iomodule );
         Py_XDECREF( openfile );
         Py_XDECREF( fileiterator );
-#endif
+
+    #else
+        if( readline ) {
+            free( readline );
+            readline = NULL;
+        }
+
+        #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
+            if( cfilestream != NULL ) {
+                fclose( cfilestream );
+                cfilestream = NULL;
+            }
+        #elif FASTFILE_GETLINE == FASTFILE_GETLINE_STDGETLINE
+            if( fileifstream.is_open() ) {
+                fileifstream.close();
+            }
+        #endif
+
+        #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
+            if( hasinitializedmonsterregex ) {
+                hasinitializedmonsterregex = false;
+
+            #if FASTFILE_REGEX == FASTFILE_REGEX_C_ENGINE
+                regfree( &monsterregex );
+
+            #elif FASTFILE_REGEX == FASTFILE_REGEX_PCRE2
+                pcre2_code_free( monsterregex );
+
+            #elif FASTFILE_REGEX == FASTFILE_REGEX_RE2
+                delete monsterregex;
+
+            #elif FASTFILE_REGEX == FASTFILE_REGEX_HYPERSCAN
+                hs_free_scratch( scratchspace );
+                hs_free_database( monsterregex );
+            #endif
+            }
+        #endif
+    #endif
     }
 
     void resetlines(int linetoreset=0) {
@@ -430,46 +495,29 @@ struct FastFile {
         std::stringstream stream;
 
         if( linestoget ) {
-        #if defined(FASTFILE_GETLINE)
-            const char* cppline;
-            unsigned int current = 1;
-
-            for( PyObject* linepy : linecache ) {
-                ++current;
-                cppline = PyUnicode_AsUTF8( linepy );
-                stream << std::string{cppline};
-
-                if( linestoget < current ) {
-                    break;
-                }
-                else {
-                    stream << '\n';
-                }
-            }
-        #else
-            char* cpplinenonconst;
-            const char* cppline;
             Py_ssize_t linesize;
+            const char* cppline;
             unsigned int current = 1;
 
             for( PyObject* linepy : linecache ) {
                 ++current;
                 cppline = PyUnicode_AsUTF8AndSize( linepy, &linesize );
-
-                if( cppline[linesize-1] == '\n' ) {
-                    cpplinenonconst = const_cast<char *>( cppline );
-                    cpplinenonconst[linesize-1] = '\0';
-                    stream << std::string{cpplinenonconst};
-                }
-                else {
-                    stream << std::string{cppline};
-                }
+                stream << std::string{cppline};
 
                 if( linestoget < current ) {
+                    if( cppline[linesize-1] == '\n' ) {
+                        stream.seekp( -1, std::ios_base::end );
+                        stream << " ";
+                    }
                     break;
                 }
+            // lines comming will not have a ending new line character
+            #if FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
+                else {
+                    stream << '\n';
+                }
+            #endif
             }
-        #endif
         }
         return stream.str();
     }
@@ -478,57 +526,36 @@ struct FastFile {
     bool _getline() {
         // Fix StopIteration being raised multiple times because _getlines is called multiple times
         if( hasfinished ) { return false; }
+        ssize_t charsread;
 
-#if defined(FASTFILE_GETLINE)
-    #ifdef FASTFILE_USE_POSIX_GETLINE
+    #if FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_PRINTABLEONLY
+        char* source;
+        char* lineend;
+        char* destination;
+        unsigned int fixedchar;
+    #endif
+
+    #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
 
         #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
             int returncode;
         #endif
-        char* source;
-        char* lineend;
-        char* destination;
 
-        ssize_t charsread;
-        unsigned int fixedchar;
-
-        while( true )
-        {
+        while( true ) {
             if( ( charsread = getline( &readline, &linebuffersize, cfilestream ) ) != -1 )
             {
-                // https://stackoverflow.com/questions/56604934/how-to-remove-the-uft8-character-from-a-char-string
-                lineend = readline + charsread;
-                destination = readline;
-                for( source = readline; source != lineend; ++source )
-                {
-                    fixedchar = static_cast<unsigned int>( *source );
-                    if( 31 < fixedchar && fixedchar < 128 ) {
-                        *destination = *source;
-                        ++destination;
-                    }
-                    else {
-                        --charsread;
-                    }
-                }
-                --charsread;
-
-                // Trim out the new line character
-                if( readline[charsread] == '\n' ) {
-                    readline[charsread] = '\0';
-                }
-                else {
-                    ++charsread;
-                    readline[charsread] = '\0';
-                }
+                FASTFILE_UTF8CHARACTER_TRIMMING
+                FASTFILE_ISTRIM_UFT8_ENABLED( FASTFILE_NEWLINETRIMMING )
 
             #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 if( !getnewline || REGEXMATCHFUNCTION )
                 {
                     getnewline = false;
             #endif
+                    FASTFILE_ISTRIM_UFT8_DISABLED( FASTFILE_NEWLINETRIMMING )
                     ++linecount;
 
-                    PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "replace" );
+                    PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "ignore" );
                     linecache.push_back( pythonobject );
 
                     // Py_XINCREF( emtpycacheobject );
@@ -546,13 +573,17 @@ struct FastFile {
                 break;
             }
         }
-    #else
+    #elif FASTFILE_GETLINE == FASTFILE_GETLINE_STDGETLINE
         if( !fileifstream.eof() )
         {
             linecount += 1;
             fileifstream.getline( readline, linebuffersize );
+            charsread = fileifstream.gcount();
 
-            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, fileifstream.gcount(), "ignore" );
+            FASTFILE_UTF8CHARACTER_TRIMMING
+            readline[charsread] = '\0';
+
+            PyObject* pythonobject = PyUnicode_DecodeUTF8( readline, charsread, "ignore" );
             linecache.push_back( pythonobject );
 
             // Py_XINCREF( emtpycacheobject );
@@ -560,21 +591,38 @@ struct FastFile {
             LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, pythonobject, readline );
             return true;
         }
-    #endif
-#else
-        PyObject* readline = PyObject_CallObject( fileiterator, NULL );
+    #elif FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
+        PyObject* readpyline = PyObject_CallObject( fileiterator, NULL );
 
-        if( readline != NULL ) {
+        if( readpyline != NULL ) {
             linecount += 1;
-            LOG( 1, "linecount %llu currentline %llu readline '%p' '%s'", linecount, currentline, readline, PyUnicode_AsUTF8( readline ) );
+            char* readline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
 
-            linecache.push_back( readline );
+            FASTFILE_UTF8CHARACTER_TRIMMING
+            FASTFILE_ISTRIM_UFT8_ENABLED( FASTFILE_NEWLINETRIMMING )
+
+            // we cannot modify a python string! Then, to remove a trailling new line, we must to
+            // create a new python string without the trailling new line!
+            --charsread;
+            if( readline[charsread] == '\n' ) {
+            }
+            else {
+                ++charsread;
+            }
+
+            PyObject* newpyline = PyUnicode_DecodeUTF8( readline, charsread, "ignore" );
+            readline = PyUnicode_AsUTF8( newpyline );
+
+            LOG( 1, "linecount %llu currentline %llu newpyline '%p' '%s'", linecount, currentline, readpyline, readline );
+            Py_DECREF( readpyline );
+
+            linecache.push_back( newpyline );
             return true;
         }
-#endif
-
         // PyErr_PrintEx(100); // uncomment this to see why this function is stopping
         PyErr_Clear();
+    #endif
+
         hasfinished = true;
         return false;
     }
