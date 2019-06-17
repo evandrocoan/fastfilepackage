@@ -220,6 +220,7 @@
 
   #define LOG( level, ... )
   #define LOGLN( level, ... )
+  #define LOGLC( level, ... )
   #define LOGCD( level, ... )
 
   /**
