@@ -1,0 +1,1 @@
+const int FASTFILE_TRIMUFT8_CONSTANT = 1;

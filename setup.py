@@ -76,7 +76,7 @@ trimutf8_variable_name = 'FASTFILE_TRIMUFT8'
 debug_variable_value = int( os.environ.get( debug_variable_name, 0 ) )
 regex_variable_value = int( os.environ.get( regex_variable_name, 0 ) )
 getline_variable_value = int( os.environ.get( getline_variable_name, 0 ) )
-trimutf8_variable_value = int( os.environ.get( trimutf8_variable_name, 0 ) )
+trimutf8_variable_value = int( os.environ.get( trimutf8_variable_name, 1 ) )
 
 class build_ext_compiler_check(build_ext):
     def build_extensions(self):
@@ -145,25 +145,35 @@ def setcppoptmiztionflag(level):
 if debug_variable_value:
     setcppoptmiztionflag( r'-O0' )
 
-    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( debug_variable_name, debug_variable_value ) )
+    sys.stderr.write( "Using fastfilepackage '%s=%s' environment variable!\n" % ( debug_variable_name, debug_variable_value ) )
     define_macros.append( (debug_variable_name, debug_variable_value) )
 else:
     setcppoptmiztionflag( r'-O2' )
 
 
 if regex_variable_value:
-    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( regex_variable_name, regex_variable_value ) )
+    sys.stderr.write( "Using fastfilepackage '%s=%s' environment variable!\n" % ( regex_variable_name, regex_variable_value ) )
     define_macros.append( (regex_variable_name, regex_variable_value) )
 
 
 if getline_variable_value:
-    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( getline_variable_name, getline_variable_value ) )
+    sys.stderr.write( "Using fastfilepackage '%s=%s' environment variable!\n" % ( getline_variable_name, getline_variable_value ) )
     define_macros.append( (getline_variable_name, getline_variable_value) )
 
 
 if trimutf8_variable_value is not None:
-    sys.stderr.write( "Using '%s=%s' environment variable!\n" % ( trimutf8_variable_name, trimutf8_variable_value ) )
+    sys.stderr.write( "Using fastfilepackage '%s=%s' environment variable!\n" % ( trimutf8_variable_name, trimutf8_variable_value ) )
     define_macros.append( (trimutf8_variable_name, trimutf8_variable_value) )
+
+    try:
+        filepath = 'source/installation_options.h'
+        result = "const int %s_CONSTANT = %s;\n" % ( trimutf8_variable_name, trimutf8_variable_value )
+
+        with open( filepath, 'wb' ) as file:
+            file.write( result.encode() )
+
+    except Exception as error:
+        sys.stderr.write( "Warning: Could not open '%s' due %s" % ( filepath, error ) )
 
 
 # https://docs.python.org/3.7/distutils/apiref.html#distutils.core.Extension

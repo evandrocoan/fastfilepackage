@@ -3,6 +3,7 @@
 #include <Python.h>
 
 #include "version.h"
+#include "installation_options.h"
 #include "fastfile.cpp"
 
 typedef struct
@@ -157,6 +158,7 @@ PyMODINIT_FUNC PyInit_fastfilepackage(void)
     // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
     // https://stackoverflow.com/questions/3001239/define-a-global-in-a-python-module-from-a-c-api
     PyObject_SetAttrString( thismodule, "__version__", Py_BuildValue( "s", __version__ ) );
+    PyObject_SetAttrString( thismodule, "FASTFILE_TRIMUFT8", Py_BuildValue( "i", FASTFILE_TRIMUFT8_CONSTANT ) );
 
     // Add FastFile class to thismodule allowing the use to create objects
     Py_INCREF( &PyFastFileType );
