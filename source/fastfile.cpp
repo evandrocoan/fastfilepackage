@@ -179,14 +179,14 @@ struct FastFile {
     bool hasclosed;
     bool hasfinished;
 
+    char* readline;
+    size_t linebuffersize;
+
 #if FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
     PyObject* iomodule;
     PyObject* openfile;
     PyObject* fileiterator;
 #else
-    char* readline;
-    size_t linebuffersize;
-    size_t initialbufersize;
 
     #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
         bool getnewline;
@@ -241,6 +241,15 @@ struct FastFile {
             std::cerr << "ERROR: FastFile failed to create the empty string object (and open the file '"
                     << filepath << "')!" << std::endl;
             PyErr_PrintEx(100);
+            return;
+        }
+
+        linebuffersize = 131072;
+        readline = (char*) malloc( linebuffersize );
+
+        if( readline == NULL ) {
+            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for readline '"
+                    << filepath << "'!" << std::endl;
             return;
         }
 
@@ -299,15 +308,6 @@ struct FastFile {
             return;
         }
     #else
-        linebuffersize = 131072;
-        initialbufersize = linebuffersize;
-        readline = (char*) malloc( linebuffersize );
-
-        if( readline == NULL ) {
-            std::cerr << "ERROR: FastFile failed to alocate internal line buffer for readline '"
-                    << filepath << "'!" << std::endl;
-            return;
-        }
 
         #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
             cfilestream = fopen( filepath, "r" );
@@ -423,6 +423,11 @@ struct FastFile {
             Py_DECREF( pyobject );
         }
 
+        if( readline ) {
+            free( readline );
+            readline = NULL;
+        }
+
     #if FASTFILE_GETLINE == FASTFILE_GETLINE_DISABLED
         PyObject* closefunction = PyObject_GetAttrString( openfile, "close" );
 
@@ -449,10 +454,6 @@ struct FastFile {
         Py_XDECREF( fileiterator );
 
     #else
-        if( readline ) {
-            free( readline );
-            readline = NULL;
-        }
 
         #if FASTFILE_GETLINE == FASTFILE_GETLINE_POSIXGETLINE
             if( cfilestream != NULL ) {
@@ -596,26 +597,43 @@ struct FastFile {
 
         if( readpyline != NULL ) {
             linecount += 1;
-            char* readline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
-
-            FASTFILE_UTF8CHARACTER_TRIMMING
-            FASTFILE_ISTRIM_UFT8_ENABLED( FASTFILE_NEWLINETRIMMING )
 
             // we cannot modify a python string! Then, to remove a trailling new line, we must to
             // create a new python string without the trailling new line!
+        #if FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_PRINTABLEONLY
+            char* cppreadline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
+
+            if( charsread > static_cast<long long int>( linebuffersize ) ) {
+                charsread = linebuffersize - 1;
+            }
+            lineend = cppreadline + charsread;
+            destination = readline;
+            for( source = cppreadline; source != lineend; ++source )
+            {
+                fixedchar = static_cast<unsigned int>( *source );
+                if( 31 < fixedchar && fixedchar < 128 ) {
+                    *destination = *source;
+                    ++destination;
+                }
+                else {
+                    --charsread;
+                }
+            }
+        #else
+            char* readline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
+        #endif
             --charsread;
             if( readline[charsread] == '\n' ) {
             }
             else {
                 ++charsread;
             }
-
             PyObject* newpyline = PyUnicode_DecodeUTF8( readline, charsread, "ignore" );
-            readline = PyUnicode_AsUTF8( newpyline );
 
-            LOG( 1, "linecount %llu currentline %llu newpyline '%p' '%s'", linecount, currentline, readpyline, readline );
+            LOG( 1, "linecount %llu currentline %llu newpyline '%p' '%s'",
+                    linecount, currentline, readpyline, PyUnicode_AsUTF8( newpyline ) );
+
             Py_DECREF( readpyline );
-
             linecache.push_back( newpyline );
             return true;
         }
