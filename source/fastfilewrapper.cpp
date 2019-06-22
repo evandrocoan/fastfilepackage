@@ -20,7 +20,7 @@ static PyModuleDef fastfilepackagemodule =
     // https://docs.python.org/3/c-api/module.html#c.PyModuleDef
     PyModuleDef_HEAD_INIT,
     "fastfilepackage", /* name of module */
-    "Example module that wrapped a C++ object", /* module documentation, may be NULL */
+    "An module written with pure Python C Extensions to open a file and cache the more recent accessed lines", /* module documentation, may be NULL */
     -1, /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
     NULL, /* PyMethodDef* m_methods */
     NULL, /* inquiry m_reload */
