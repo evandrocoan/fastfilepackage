@@ -125,6 +125,16 @@ i.e.,e it is causing the deadlock or livelock.
 1. https://stackoverflow.com/questions/14659147/how-to-print-pointer-content-in-gdb
 1. https://stackoverflow.com/questions/14502236/how-to-view-a-pointer-like-an-array-in-gdb
 
+Note:
+Instead of creating a `core dump file`,
+you can run your program directly with `gdb --args program_name` and
+once you are on the `gdb` command line,
+you can use the `run` command and
+once your program enters/starts a dead or live lock,
+you can press `Ctrl+C` to stop the program execution.
+Then,
+`gdb` will already had "captured" the `core dum file`.
+
 
 ## Enable debug mode
 
