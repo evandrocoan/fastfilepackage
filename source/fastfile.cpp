@@ -530,9 +530,9 @@ struct FastFile {
         ssize_t charsread;
 
     #if FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_PRINTABLEONLY
-        char* source;
-        char* lineend;
         char* destination;
+        const char* source;
+        const char* lineend;
         unsigned int fixedchar;
     #endif
 
@@ -598,17 +598,42 @@ struct FastFile {
         if( readpyline != NULL ) {
             linecount += 1;
 
-            // we cannot modify a python string! Then, to remove a trailling new line, we must to
+            // we cannot modify a Python string! Then, to remove a trailling new line, we must to
             // create a new python string without the trailling new line!
         #if FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_PRINTABLEONLY
-            char* cppreadline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
+            const char* cppline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
 
-            if( charsread > static_cast<long long int>( linebuffersize ) ) {
-                charsread = linebuffersize - 1;
+            if( cppline == NULL ) {
+                PyErr_PrintEx(100);
+                std::cerr << "ERROR: FastFile failed to get Python cppline '"
+                        << filepath << "'" << std::endl;
+                return false;
             }
-            lineend = cppreadline + charsread;
+
+            if( charsread + 1 > static_cast<long long int>( linebuffersize ) )
+            {
+                // Allocate charsread + 1 because the charsread variable does not include the end null byte '\0'
+                char* reallocresult = (char*) malloc( charsread + 1 );
+
+                if( reallocresult == NULL ) {
+                    charsread = linebuffersize - 1;
+                    std::cerr << "ERROR: FastFile failed to alocate internal for reallocresult '"
+                            << filepath << "' new size '" << charsread + 1 << "' old size '"
+                            << linebuffersize << "'" << std::endl;
+                }
+                else {
+                    LOG( 1, "Alocating internal line buffer for reallocresult '%s' new size '%s' old size '%s'",
+                            filepath, charsread + 1, linebuffersize );
+
+                    free( readline );
+                    readline = reallocresult;
+                    linebuffersize = charsread + 1;
+                }
+            }
+
+            lineend = cppline + charsread;
             destination = readline;
-            for( source = cppreadline; source != lineend; ++source )
+            for( source = cppline; source != lineend; ++source )
             {
                 fixedchar = static_cast<unsigned int>( *source );
                 if( 31 < fixedchar && fixedchar < 128 ) {
@@ -621,6 +646,13 @@ struct FastFile {
             }
         #else
             char* readline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
+
+            if( readline == NULL ) {
+                PyErr_PrintEx(100);
+                std::cerr << "ERROR: FastFile failed to get Python readline '"
+                        << filepath << "'" << std::endl;
+                return false;
+            }
         #endif
             --charsread;
             if( readline[charsread] == '\n' ) {
@@ -628,8 +660,8 @@ struct FastFile {
             else {
                 ++charsread;
             }
-            PyObject* newpyline = PyUnicode_DecodeUTF8( readline, charsread, "ignore" );
 
+            PyObject* newpyline = PyUnicode_DecodeUTF8( readline, charsread, "ignore" );
             LOG( 1, "linecount %llu currentline %llu newpyline '%p' '%s'",
                     linecount, currentline, readpyline, PyUnicode_AsUTF8( newpyline ) );
 
