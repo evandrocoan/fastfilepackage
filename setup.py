@@ -13,7 +13,7 @@
 # Run this to build the `dist/PACKAGE_NAME-xxx.tar.gz` file
 #     rm -rf ./dist && python3 setup.py sdist
 #
-# Run this to build & upload it to `pypi`, type addons_zz when prompted.
+# Run this to build & upload it to `pypi`, type your account name when prompted.
 #     twine upload dist/*
 #
 # All in one command:
