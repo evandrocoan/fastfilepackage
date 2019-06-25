@@ -644,7 +644,7 @@ struct FastFile {
                     --charsread;
                 }
             }
-        #else
+        #elif FASTFILE_TRIMUFT8 == FASTFILE_TRIMUFT8_DISABLED
             char* readline = PyUnicode_AsUTF8AndSize( readpyline, &charsread );
 
             if( readline == NULL ) {
