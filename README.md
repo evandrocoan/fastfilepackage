@@ -133,7 +133,7 @@ you can use the `run` command and
 once your program enters/starts a dead or live lock,
 you can press `Ctrl+C` to stop the program execution.
 Then,
-`gdb` will already had "captured" the `core dum file`.
+`gdb` will already had "captured" the `core dump file`.
 
 
 ## Enable debug mode
