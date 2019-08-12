@@ -178,6 +178,7 @@ struct FastFile {
 
     bool hasclosed;
     bool hasfinished;
+    bool enableregex;
 
     char* readline;
     size_t linebuffersize;
@@ -225,6 +226,7 @@ struct FastFile {
                 filepath(filepath),
                 hasclosed(false),
                 hasfinished(false),
+                enableregex(false),
 
             #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
                 getnewline(false),
@@ -235,6 +237,11 @@ struct FastFile {
     {
         LOG( 1, "Constructor with:\nFASTFILE_GETLINE=%s\nFASTFILE_REGEX=%s\nFASTFILE_TRIMUFT8=%s\nfilepath=%s\nrawregex=%s",
                 FASTFILE_GETLINE, FASTFILE_REGEX, FASTFILE_TRIMUFT8, filepath, rawregex );
+
+        if( rawregex && strlen(rawregex) ) {
+            enableregex = true;
+            LOG( 1, "Setting enableregex to true" );
+        }
 
         emtpycacheobject = PyUnicode_DecodeUTF8( "", 0, "ignore" );
         if( emtpycacheobject == NULL ) {
@@ -681,7 +688,7 @@ struct FastFile {
         currentline = -1;
 
     #if FASTFILE_REGEX != FASTFILE_REGEX_DISABLED
-        getnewline = true;
+        getnewline = enableregex;
     #endif
         if( linecache.size() ) {
             Py_DECREF( linecache[0] );
