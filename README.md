@@ -180,6 +180,7 @@ To debug `refcounts` leaks:
 
 To generate core dumps instead of stack traces on `Cygwin`
 ```
+# Use `unset CYGWIN` to generate stackdump again
 export CYGWIN="$CYGWIN error_start=dumper -d %1 %2"
 ```
 1. https://stackoverflow.com/questions/320001/using-a-stackdump-from-cygwin-executable
