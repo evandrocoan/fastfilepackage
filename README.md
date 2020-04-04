@@ -32,7 +32,7 @@ Or install it with:
 pip3 install fastfilepackage
 ```
 
-### Alternive file reading
+### Alternative file reading
 
 There are available 3 alternative implementations for file reading.
 Both of them,
